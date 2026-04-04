@@ -384,6 +384,12 @@ def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
 
+    venture_repo = WORKSPACE / "repos" / args.venture
+    if not Path(args.source).is_absolute():
+        args.source = str(venture_repo / args.source)
+    if not Path(args.target).is_absolute():
+        args.target = str(venture_repo / args.target)
+
     try:
         validate_inputs(args)
     except Exception as exc:
