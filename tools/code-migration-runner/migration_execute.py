@@ -9,8 +9,8 @@ import sys
 from model_backend import run_model
 
 
-WORKSPACE = Path.home() / "workspace"
-AI_FACTORY = WORKSPACE / "ai-factory"
+AI_FACTORY = Path(__file__).resolve().parent.parent.parent
+WORKSPACE = AI_FACTORY.parent
 
 
 def build_parser() -> argparse.ArgumentParser:

@@ -6,8 +6,8 @@ from pathlib import Path
 import sys
 
 
-WORKSPACE = Path.home() / "workspace"
-AI_FACTORY = WORKSPACE / "ai-factory"
+AI_FACTORY = Path(__file__).resolve().parent.parent.parent
+WORKSPACE = AI_FACTORY.parent
 AI_AGENCY_CORE = WORKSPACE / "repos" / "ai-agency-core"
 MAX_SOURCE_CHARS = 12000
 
