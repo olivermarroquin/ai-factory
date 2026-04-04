@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+    echo "usage:" >&2
+    echo "  run-migration-cycle <batch-jobs.json>" >&2
+    echo "  run-migration-cycle --approved-report <batch-report.json>" >&2
+    exit 1
+}
+
+if [[ $# -eq 1 && "$1" != "--approved-report" ]]; then
+    JOBS_FILE="$1"
+
+    if [[ ! -f "$JOBS_FILE" ]]; then
+        echo "error: batch jobs file not found: $JOBS_FILE" >&2
+        exit 1
+    fi
+
+    "$REPO_ROOT/run-migration-preflight" "$JOBS_FILE"
+
+    echo ""
+    echo "Approval required before execution."
+    echo "To approve, run:"
+    echo "  ./approve-batch-report <report path above>"
+    echo "Then execute with:"
+    echo "  ./run-migration-cycle --approved-report <report path above>"
+    exit 0
+
+elif [[ $# -eq 2 && "$1" == "--approved-report" ]]; then
+    REPORT_FILE="$2"
+
+    if [[ ! -f "$REPORT_FILE" ]]; then
+        echo "error: batch report file not found: $REPORT_FILE" >&2
+        exit 1
+    fi
+
+    approved=$(jq -r '.approved' "$REPORT_FILE")
+    if [[ "$approved" != "true" ]]; then
+        echo "error: batch report is not approved — run ./approve-batch-report first" >&2
+        exit 1
+    fi
+
+    QUEUE_STATE_FILE="${REPORT_FILE/_batch-report.json/_queue-state.json}"
+
+    if [[ ! -f "$QUEUE_STATE_FILE" ]]; then
+        echo "error: matching queue-state file not found: $QUEUE_STATE_FILE" >&2
+        exit 1
+    fi
+
+    "$REPO_ROOT/run-migration-queue" "$QUEUE_STATE_FILE"
+
+else
+    usage
+fi
