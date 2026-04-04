@@ -1,0 +1,9 @@
+{
+  "batch_execution": {
+    "allowed_job_types": ["migration"],
+    "allowed_workflow_types": ["code_migration"],
+    "allowed_workflow_spec_versions": ["1"],
+    "allowed_classes": ["A"],
+    "allowed_reason_codes": ["A_EXACT_PORT"]
+  }
+}

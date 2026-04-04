@@ -26,7 +26,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model", default="stub", help="Execution backend")
     parser.add_argument(
         "--mode",
-        choices=["stub", "manual-capture", "manual-capture-coder-reviewer", "manual-capture-coder-apply-reviewer", "auto-stub", "auto-openai", "classify-only"],
+        choices=["stub", "manual-capture", "manual-capture-coder-reviewer", "manual-capture-coder-apply-reviewer", "auto-stub", "auto-openai", "classify-only", "classify-verbose"],
         default="stub",
         help="Execution mode",
     )
@@ -67,7 +67,7 @@ def validate_inputs(paths: dict[str, Path], mode: str) -> None:
     if not paths["logs_dir"].exists():
         raise FileNotFoundError(f"migration log folder not found: {paths['logs_dir']}")
 
-    if mode == "classify-only":
+    if mode in ("classify-only", "classify-verbose"):
         if not paths["planner_output"].exists():
             raise FileNotFoundError(f"required file not found: {paths['planner_output']}")
         return
@@ -390,9 +390,9 @@ def apply_and_review(
     return 0
 
 
-def classify_job(planner_output: str) -> str:
+def classify_job(planner_output: str) -> tuple[str, str]:
     if not planner_output.strip():
-        return "C"
+        return "C", "C_INVALID_STRUCTURE"
 
     low = planner_output.lower()
 
@@ -403,19 +403,28 @@ def classify_job(planner_output: str) -> str:
     ]
     for section in required_sections:
         if section not in low:
-            return "C"
+            return "C", "C_INVALID_STRUCTURE"
 
     # Class A: strongest exact-port signal only
     if "source context required\nyes" in low:
-        return "A"
+        return "A", "A_EXACT_PORT"
 
     # Default: Class B
-    return "B"
+    return "B", "B_DEFAULT_REVIEW"
 
 
 def run_classify_only(paths: dict[str, Path]) -> int:
     planner_output = read_text(paths["planner_output"])
-    print(classify_job(planner_output))
+    job_class, _ = classify_job(planner_output)
+    print(job_class)
+    return 0
+
+
+def run_classify_verbose(paths: dict[str, Path]) -> int:
+    planner_output = read_text(paths["planner_output"])
+    job_class, reason_code = classify_job(planner_output)
+    print(f"class:       {job_class}")
+    print(f"reason_code: {reason_code}")
     return 0
 
 
@@ -439,6 +448,8 @@ def write_manifest(
         "mode": args.mode,
         "status": status,
         "failed_stage": failed_stage,
+        "actual_class": getattr(args, "actual_class", None),
+        "classification_reason_code": getattr(args, "classification_reason_code", None),
         "backend": backend,
         "model": model,
         "analyzer_output_path": str(paths["analyzer_output"]),
@@ -606,13 +617,15 @@ def run_auto_openai(paths: dict[str, Path], args: argparse.Namespace) -> int:
         return 1
 
     # --- Classification ---
-    classification = classify_job(result.raw_text)
-    if classification == "C":
-        print("[FAIL] Job classified as Class C — automated execution not allowed", file=sys.stderr)
+    job_class, reason_code = classify_job(result.raw_text)
+    args.actual_class = job_class
+    args.classification_reason_code = reason_code
+    if job_class == "C":
+        print(f"[FAIL] Job classified as Class C ({reason_code}) — automated execution not allowed", file=sys.stderr)
         args.failed_stage = "classification"
         return 1
-    if classification == "B":
-        print("[WARN] Job classified as Class B — auto-apply not allowed", file=sys.stderr)
+    if job_class == "B":
+        print(f"[WARN] Job classified as Class B ({reason_code}) — auto-apply not allowed", file=sys.stderr)
         args.failed_stage = "classification"
         return 1
 
@@ -737,6 +750,8 @@ def main() -> int:
     args = parser.parse_args()
     args.failed_stage = None
     args.applied_target_path = None
+    args.actual_class = None
+    args.classification_reason_code = None
 
     paths = required_paths(args.venture, args.date, args.step)
     ts = datetime.now(timezone.utc)
@@ -745,7 +760,7 @@ def main() -> int:
         validate_inputs(paths, args.mode)
     except Exception as exc:
         print(f"error: {exc}", file=sys.stderr)
-        if args.mode != "classify-only":
+        if args.mode not in ("classify-only", "classify-verbose"):
             write_manifest(paths, args, status="failed", ts=ts, failed_stage="validation")
         return 1
 
@@ -772,6 +787,8 @@ def main() -> int:
         rc = run_auto_openai(paths, args)
     elif args.mode == "classify-only":
         rc = run_classify_only(paths)
+    elif args.mode == "classify-verbose":
+        rc = run_classify_verbose(paths)
     else:
         print(f"error: unsupported mode {args.mode}", file=sys.stderr)
         write_manifest(paths, args, status="failed", ts=ts, failed_stage="dispatch")
@@ -779,7 +796,7 @@ def main() -> int:
 
     applied_target_path = args.applied_target_path
 
-    if args.mode != "classify-only":
+    if args.mode not in ("classify-only", "classify-verbose"):
         write_manifest(
             paths, args,
             status="success" if rc == 0 else "failed",

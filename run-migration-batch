@@ -1,126 +1,228 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DRY_RUN=0
+REPORT_FILE=""
 
-if [[ $# -eq 2 && "$1" == "--dry-run" ]]; then
-    DRY_RUN=1
-    JOBS_FILE="$2"
-elif [[ $# -eq 1 && "$1" != "--dry-run" ]]; then
-    JOBS_FILE="$1"
+if [[ $# -eq 2 && "$1" == "--report" ]]; then
+    REPORT_FILE="$2"
 else
-    echo "usage: run-migration-batch [--dry-run] <jobs.json>" >&2
+    echo "usage: run-migration-batch --report <batch-report.json>" >&2
     exit 1
 fi
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [[ ! -f "$JOBS_FILE" ]]; then
-    echo "error: jobs file not found: $JOBS_FILE" >&2
+if [[ ! -f "$REPORT_FILE" ]]; then
+    echo "error: report file not found: $REPORT_FILE" >&2
     exit 1
 fi
 
-total_jobs=$(jq 'length' "$JOBS_FILE")
-previewed_jobs=0
-matched_jobs=0
-mismatched_jobs=0
+total_jobs=$(jq '.total_jobs' "$REPORT_FILE")
 executed_jobs=0
 blocked_jobs=0
-last_successful_step=""
+
+approved=$(jq -r '.approved' "$REPORT_FILE")
+if [[ "$approved" != "true" ]]; then
+    echo "error: Batch report is not approved for execution" >&2
+    exit 1
+fi
+
+POLICY_FILE="$REPO_ROOT/config/migration-execution-policy.json"
+if [[ ! -f "$POLICY_FILE" ]]; then
+    echo "error: policy file not found: $POLICY_FILE" >&2
+    exit 1
+fi
+if ! jq empty "$POLICY_FILE" 2>/dev/null; then
+    echo "error: policy file contains invalid JSON: $POLICY_FILE" >&2
+    exit 1
+fi
+
+allowed_job_types=()
+while IFS= read -r entry; do
+    allowed_job_types+=("$entry")
+done < <(jq -r '.batch_execution.allowed_job_types[]' "$POLICY_FILE")
+
+allowed_workflow_types=()
+while IFS= read -r entry; do
+    allowed_workflow_types+=("$entry")
+done < <(jq -r '.batch_execution.allowed_workflow_types[]' "$POLICY_FILE")
+
+allowed_workflow_spec_versions=()
+while IFS= read -r entry; do
+    allowed_workflow_spec_versions+=("$entry")
+done < <(jq -r '.batch_execution.allowed_workflow_spec_versions[]' "$POLICY_FILE")
+
+allowed_classes=()
+while IFS= read -r entry; do
+    allowed_classes+=("$entry")
+done < <(jq -r '.batch_execution.allowed_classes[]' "$POLICY_FILE")
+
+allowed_reason_codes=()
+while IFS= read -r entry; do
+    allowed_reason_codes+=("$entry")
+done < <(jq -r '.batch_execution.allowed_reason_codes[]' "$POLICY_FILE")
+
+report_approved_at_utc=$(jq -r '.approved_at_utc' "$REPORT_FILE")
+source_report_path="$(realpath "$REPORT_FILE")"
+
+TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+RUNS_DIR="$REPO_ROOT/batch-runs"
+mkdir -p "$RUNS_DIR"
+RUN_FILE="$RUNS_DIR/${TIMESTAMP}_batch-run.json"
+generated_at_utc="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+run_status="success"
+failed_venture=""
+failed_step=""
+
+write_run_record() {
+    local status="$1"
+    local fv="$2"
+    local fs="$3"
+    jq -n \
+        --arg generated_at_utc "$generated_at_utc" \
+        --arg source_report_path "$source_report_path" \
+        --arg report_approved_at_utc "$report_approved_at_utc" \
+        --argjson total_jobs "$total_jobs" \
+        --argjson executed_jobs "$executed_jobs" \
+        --argjson blocked_jobs "$blocked_jobs" \
+        --arg status "$status" \
+        --argjson failed_venture "$([ -n "$fv" ] && echo "\"$fv\"" || echo 'null')" \
+        --argjson failed_step "$([ -n "$fs" ] && echo "\"$fs\"" || echo 'null')" \
+        '{
+            generated_at_utc: $generated_at_utc,
+            source_report_path: $source_report_path,
+            report_approved_at_utc: $report_approved_at_utc,
+            total_jobs: $total_jobs,
+            executed_jobs: $executed_jobs,
+            blocked_jobs: $blocked_jobs,
+            status: $status,
+            failed_venture: $failed_venture,
+            failed_step: $failed_step
+        }' > "$RUN_FILE"
+    echo "batch run record -> $RUN_FILE"
+}
 
 print_summary() {
-    if [[ "$DRY_RUN" -eq 1 ]]; then
-        echo "Summary:"
-        echo "  previewed:  $previewed_jobs/$total_jobs"
-        echo "  matched:    $matched_jobs"
-        echo "  mismatched: $mismatched_jobs"
-    else
-        echo "Summary:"
-        echo "  executed:   $executed_jobs/$total_jobs"
-        echo "  matched:    $matched_jobs"
-        echo "  blocked:    $blocked_jobs"
-        echo "  mismatched: $mismatched_jobs"
-    fi
+    echo "Summary:"
+    echo "  executed: $executed_jobs/$total_jobs"
+    echo "  blocked:  $blocked_jobs"
 }
 
 while read -r job; do
     venture=$(echo "$job" | jq -r '.venture')
     step=$(echo "$job" | jq -r '.step')
     date=$(echo "$job" | jq -r '.date')
+    status=$(echo "$job" | jq -r '.status')
+    execution_allowed=$(echo "$job" | jq -r '.execution_allowed')
+    actual_class=$(echo "$job" | jq -r '.actual_class')
+    reason_code=$(echo "$job" | jq -r '.classification_reason_code')
+    job_type=$(echo "$job" | jq -r '.job_type')
+    workflow_type=$(echo "$job" | jq -r '.workflow_type')
+    workflow_spec_version=$(echo "$job" | jq -r '.workflow_spec_version')
 
-    expected_class=$(echo "$job" | jq -r '.expected_class')
-
-    if [[ -z "$venture" || -z "$step" || -z "$date" || -z "$expected_class" ]]; then
-        echo "Invalid job entry: missing required fields" >&2
+    job_type_allowed=0
+    for allowed in "${allowed_job_types[@]}"; do
+        if [[ "$job_type" == "$allowed" ]]; then
+            job_type_allowed=1
+            break
+        fi
+    done
+    if [[ "$job_type_allowed" -eq 0 ]]; then
+        blocked_jobs=$((blocked_jobs + 1))
+        echo "Batch report contains non-executable job type at step $step: $job_type" >&2
+        print_summary
+        write_run_record "failed" "$venture" "$step"
         exit 1
     fi
 
-    if [[ "$expected_class" != "A" && "$expected_class" != "B" && "$expected_class" != "C" ]]; then
-        echo "Invalid job entry: expected_class must be A, B, or C (got: $expected_class)" >&2
+    workflow_type_allowed=0
+    for allowed in "${allowed_workflow_types[@]}"; do
+        if [[ "$workflow_type" == "$allowed" ]]; then
+            workflow_type_allowed=1
+            break
+        fi
+    done
+    if [[ "$workflow_type_allowed" -eq 0 ]]; then
+        blocked_jobs=$((blocked_jobs + 1))
+        echo "Batch report contains non-executable workflow type at step $step: $workflow_type" >&2
+        print_summary
+        write_run_record "failed" "$venture" "$step"
         exit 1
     fi
 
-    actual_class=""
-    if ! actual_class=$("$REPO_ROOT/run-migration-execute" \
+    workflow_spec_version_allowed=0
+    for allowed in "${allowed_workflow_spec_versions[@]}"; do
+        if [[ "$workflow_spec_version" == "$allowed" ]]; then
+            workflow_spec_version_allowed=1
+            break
+        fi
+    done
+    if [[ "$workflow_spec_version_allowed" -eq 0 ]]; then
+        blocked_jobs=$((blocked_jobs + 1))
+        echo "Batch report contains non-executable workflow spec version at step $step: $workflow_spec_version" >&2
+        print_summary
+        write_run_record "failed" "$venture" "$step"
+        exit 1
+    fi
+
+    class_allowed=0
+    for allowed in "${allowed_classes[@]}"; do
+        if [[ "$actual_class" == "$allowed" ]]; then
+            class_allowed=1
+            break
+        fi
+    done
+
+    if [[ "$status" != "ready" || "$execution_allowed" != "true" || "$class_allowed" -eq 0 ]]; then
+        blocked_jobs=$((blocked_jobs + 1))
+        echo "Batch report contains blocked job at step $step" >&2
+        print_summary
+        write_run_record "failed" "$venture" "$step"
+        exit 1
+    fi
+
+    reason_allowed=0
+    for allowed in "${allowed_reason_codes[@]}"; do
+        if [[ "$reason_code" == "$allowed" ]]; then
+            reason_allowed=1
+            break
+        fi
+    done
+    if [[ "$reason_allowed" -eq 0 ]]; then
+        blocked_jobs=$((blocked_jobs + 1))
+        echo "Batch report contains non-executable reason code at step $step: $reason_code" >&2
+        print_summary
+        write_run_record "failed" "$venture" "$step"
+        exit 1
+    fi
+
+    echo "Running job: $venture step $step"
+    echo "  venture:      $venture"
+    echo "  step:         $step"
+    echo "  date:         $date"
+    echo "  job type:      $job_type"
+    echo "  workflow type:    $workflow_type"
+    echo "  workflow version: $workflow_spec_version"
+    echo "  actual class:     $actual_class"
+    echo "  reason code:  $reason_code"
+
+    if ! "$REPO_ROOT/run-migration-execute" \
         --venture "$venture" \
         --step "$step" \
         --date "$date" \
-        --mode classify-only); then
-        echo "error: could not classify job for step $step (planner output may not exist)" >&2
-        exit 1
-    fi
-
-    if [[ "$actual_class" != "$expected_class" ]]; then
-        mismatched_jobs=$((mismatched_jobs + 1))
-        if [[ "$DRY_RUN" -eq 1 ]]; then
-            previewed_jobs=$((previewed_jobs + 1))
-        else
-            blocked_jobs=$((blocked_jobs + 1))
-        fi
-        echo "Class mismatch for step $step: expected $expected_class, got $actual_class" >&2
+        --mode auto-openai \
+        --force; then
+        echo "Batch halted on failure at step $step" >&2
         print_summary
+        write_run_record "failed" "$venture" "$step"
         exit 1
     fi
 
-    matched_jobs=$((matched_jobs + 1))
+    executed_jobs=$((executed_jobs + 1))
 
-    if [[ "$DRY_RUN" -eq 1 ]]; then
-        previewed_jobs=$((previewed_jobs + 1))
-        echo "Job preview:"
-        echo "  venture:        $venture"
-        echo "  step:           $step"
-        echo "  date:           $date"
-        echo "  planned mode:   auto-openai"
-        echo "  expected class: $expected_class"
-        echo "  actual class:   $actual_class"
-    else
-        echo "Running job: $venture step $step"
-        echo "  venture:        $venture"
-        echo "  step:           $step"
-        echo "  date:           $date"
-        echo "  expected class: $expected_class"
-        echo "  actual class:   $actual_class"
+done < <(jq -c '.jobs[]' "$REPORT_FILE")
 
-        if ! "$REPO_ROOT/run-migration-execute" \
-            --venture "$venture" \
-            --step "$step" \
-            --date "$date" \
-            --mode auto-openai \
-            --force; then
-            echo "Batch halted on failure at step $step" >&2
-            print_summary
-            exit 1
-        fi
-
-        executed_jobs=$((executed_jobs + 1))
-        last_successful_step="$step"
-    fi
-
-done < <(jq -c '.[]' "$JOBS_FILE")
-
-if [[ "$DRY_RUN" -eq 1 ]]; then
-    echo "Dry run complete"
-else
-    echo "Batch completed successfully"
-fi
+echo "Batch completed successfully"
 print_summary
+write_run_record "success" "" ""

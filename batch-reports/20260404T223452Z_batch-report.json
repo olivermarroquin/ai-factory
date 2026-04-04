@@ -1,0 +1,23 @@
+{
+  "generated_at_utc": "2026-04-04T22:34:53Z",
+  "batch_file": "/Users/olivermarroquin/workspace/ai-factory/batch-jobs.json",
+  "total_jobs": 1,
+  "ready_jobs": 1,
+  "blocked_jobs": 0,
+  "approved": true,
+  "approved_at_utc": "2026-04-04T22:35:11Z",
+  "jobs": [
+    {
+      "venture": "resume-saas",
+      "step": 15,
+      "date": "2026-04-04",
+      "job_type": "migration",
+      "workflow_type": "code_migration",
+      "expected_class": "A",
+      "actual_class": "A",
+      "classification_reason_code": "A_EXACT_PORT",
+      "execution_allowed": true,
+      "status": "ready"
+    }
+  ]
+}

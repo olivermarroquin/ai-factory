@@ -21,15 +21,18 @@ fi
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-actual_class=""
-if ! actual_class=$("$REPO_ROOT/run-migration-execute" \
+verbose_output=""
+if ! verbose_output=$("$REPO_ROOT/run-migration-execute" \
     --venture "$VENTURE" \
     --step "$STEP" \
     --date "$DATE" \
-    --mode classify-only); then
+    --mode classify-verbose); then
     echo "error: classification failed — planner output may not exist for $VENTURE step $STEP" >&2
     exit 1
 fi
+
+actual_class=$(echo "$verbose_output" | grep '^class:' | awk '{print $2}')
+reason_code=$(echo "$verbose_output" | grep '^reason_code:' | awk '{print $2}')
 
 if [[ "$actual_class" == "A" ]]; then
     execution_allowed="yes"
@@ -41,4 +44,5 @@ echo "venture:           $VENTURE"
 echo "step:              $STEP"
 echo "date:              $DATE"
 echo "actual class:      $actual_class"
+echo "reason code:       $reason_code"
 echo "execution allowed: $execution_allowed"

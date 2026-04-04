@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 ]]; then
+    echo "usage: approve-batch-report <batch-report.json>" >&2
+    exit 1
+fi
+
+REPORT_FILE="$1"
+
+if [[ ! -f "$REPORT_FILE" ]]; then
+    echo "error: report file not found: $REPORT_FILE" >&2
+    exit 1
+fi
+
+if ! jq empty "$REPORT_FILE" 2>/dev/null; then
+    echo "error: report file contains invalid JSON: $REPORT_FILE" >&2
+    exit 1
+fi
+
+already_approved=$(jq -r '.approved' "$REPORT_FILE")
+if [[ "$already_approved" == "true" ]]; then
+    echo "Report is already approved: $REPORT_FILE"
+    exit 0
+fi
+
+approved_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+tmp_file="$(mktemp)"
+jq --arg approved_at "$approved_at" \
+    '.approved = true | .approved_at_utc = $approved_at' \
+    "$REPORT_FILE" > "$tmp_file"
+mv "$tmp_file" "$REPORT_FILE"
+
+echo "Approved: $REPORT_FILE"
+echo "approved_at_utc: $approved_at"

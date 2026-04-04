@@ -1,0 +1,11 @@
+{
+  "generated_at_utc": "2026-04-04T22:39:45Z",
+  "source_report_path": "/Users/olivermarroquin/workspace/ai-factory/batch-reports/20260404T223849Z_batch-report.json",
+  "report_approved_at_utc": "2026-04-04T22:39:12Z",
+  "total_jobs": 1,
+  "executed_jobs": 1,
+  "blocked_jobs": 0,
+  "status": "success",
+  "failed_venture": null,
+  "failed_step": null
+}

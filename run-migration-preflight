@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 ]]; then
+    echo "usage: run-migration-preflight <jobs.json>" >&2
+    exit 1
+fi
+
+JOBS_FILE="$1"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ ! -f "$JOBS_FILE" ]]; then
+    echo "error: jobs file not found: $JOBS_FILE" >&2
+    exit 1
+fi
+
+TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+REPORTS_DIR="$REPO_ROOT/batch-reports"
+mkdir -p "$REPORTS_DIR"
+REPORT_FILE="$REPORTS_DIR/${TIMESTAMP}_batch-report.json"
+
+total_jobs=$(jq 'length' "$JOBS_FILE")
+ready_jobs=0
+blocked_jobs=0
+
+jobs_json="["
+first=1
+
+while read -r job; do
+    venture=$(echo "$job" | jq -r '.venture')
+    step=$(echo "$job" | jq -r '.step')
+    date=$(echo "$job" | jq -r '.date')
+    expected_class=$(echo "$job" | jq -r '.expected_class')
+    job_type=$(echo "$job" | jq -r '.job_type')
+    workflow_type=$(echo "$job" | jq -r '.workflow_type')
+
+    if [[ -z "$job_type" || "$job_type" == "null" ]]; then
+        echo "error: job_type missing for step $step" >&2
+        exit 1
+    fi
+    if [[ "$job_type" != "migration" ]]; then
+        echo "error: invalid job_type for step $step: $job_type" >&2
+        exit 1
+    fi
+    if [[ -z "$workflow_type" || "$workflow_type" == "null" ]]; then
+        echo "error: workflow_type missing for step $step" >&2
+        exit 1
+    fi
+    if [[ "$workflow_type" != "code_migration" ]]; then
+        echo "error: invalid workflow_type for step $step: $workflow_type" >&2
+        exit 1
+    fi
+    workflow_spec_version=$(echo "$job" | jq -r '.workflow_spec_version')
+    if [[ -z "$workflow_spec_version" || "$workflow_spec_version" == "null" ]]; then
+        echo "error: workflow_spec_version missing for step $step" >&2
+        exit 1
+    fi
+    if [[ "$workflow_spec_version" != "1" ]]; then
+        echo "error: invalid workflow_spec_version for step $step: $workflow_spec_version" >&2
+        exit 1
+    fi
+
+    verbose_output=""
+    if ! verbose_output=$("$REPO_ROOT/run-migration-execute" \
+        --venture "$venture" \
+        --step "$step" \
+        --date "$date" \
+        --mode classify-verbose 2>/dev/null); then
+        actual_class="C"
+        reason_code="C_INVALID_STRUCTURE"
+    else
+        actual_class=$(echo "$verbose_output" | grep '^class:' | awk '{print $2}')
+        reason_code=$(echo "$verbose_output" | grep '^reason_code:' | awk '{print $2}')
+    fi
+
+    if [[ "$expected_class" == "$actual_class" && "$actual_class" == "A" ]]; then
+        execution_allowed="true"
+        status="ready"
+        ready_jobs=$((ready_jobs + 1))
+    else
+        execution_allowed="false"
+        status="blocked"
+        blocked_jobs=$((blocked_jobs + 1))
+    fi
+
+    job_entry=$(jq -n \
+        --arg venture "$venture" \
+        --argjson step "$step" \
+        --arg date "$date" \
+        --arg job_type "$job_type" \
+        --arg workflow_type "$workflow_type" \
+        --arg workflow_spec_version "$workflow_spec_version" \
+        --arg expected_class "$expected_class" \
+        --arg actual_class "$actual_class" \
+        --arg reason_code "$reason_code" \
+        --argjson execution_allowed "$execution_allowed" \
+        --arg status "$status" \
+        '{
+            venture: $venture,
+            step: $step,
+            date: $date,
+            job_type: $job_type,
+            workflow_type: $workflow_type,
+            workflow_spec_version: $workflow_spec_version,
+            expected_class: $expected_class,
+            actual_class: $actual_class,
+            classification_reason_code: $reason_code,
+            execution_allowed: $execution_allowed,
+            status: $status
+        }')
+
+    if [[ "$first" -eq 1 ]]; then
+        jobs_json+="$job_entry"
+        first=0
+    else
+        jobs_json+=",$job_entry"
+    fi
+
+done < <(jq -c '.[]' "$JOBS_FILE")
+
+jobs_json+="]"
+
+jq -n \
+    --arg generated_at_utc "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg batch_file "$(realpath "$JOBS_FILE")" \
+    --argjson total_jobs "$total_jobs" \
+    --argjson ready_jobs "$ready_jobs" \
+    --argjson blocked_jobs "$blocked_jobs" \
+    --argjson jobs "$jobs_json" \
+    '{
+        generated_at_utc: $generated_at_utc,
+        batch_file: $batch_file,
+        total_jobs: $total_jobs,
+        ready_jobs: $ready_jobs,
+        blocked_jobs: $blocked_jobs,
+        approved: false,
+        approved_at_utc: null,
+        jobs: $jobs
+    }' > "$REPORT_FILE"
+
+echo "report:       $REPORT_FILE"
+echo "total_jobs:   $total_jobs"
+echo "ready_jobs:   $ready_jobs"
+echo "blocked_jobs: $blocked_jobs"
