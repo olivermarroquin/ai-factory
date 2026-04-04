@@ -322,6 +322,8 @@ def apply_and_review(
         print(f"error applying coder output: {exc}", file=sys.stderr)
         return 1
 
+    args.applied_target_path = str(target_path)
+
     if args.mode == "auto-openai":
         print(f"applied target file -> {target_path}")
 
@@ -689,6 +691,7 @@ def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
     args.failed_stage = None
+    args.applied_target_path = None
 
     paths = required_paths(args.venture, args.date, args.step)
     ts = datetime.now(timezone.utc)
@@ -726,14 +729,7 @@ def main() -> int:
         write_manifest(paths, args, status="failed", ts=ts, failed_stage="dispatch")
         return 1
 
-    applied_target_path: str | None = None
-    if rc == 0 and args.mode in ("auto-openai", "manual-capture-coder-apply-reviewer"):
-        try:
-            planner_text = read_text(paths["planner_output"])
-            target_value = extract_target_file_from_planner(planner_text)
-            applied_target_path = str(resolve_target_path(target_value, venture=args.venture))
-        except Exception:
-            pass
+    applied_target_path = args.applied_target_path
 
     write_manifest(
         paths, args,
