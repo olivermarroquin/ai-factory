@@ -1,0 +1,245 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 ]]; then
+    echo "usage: run-migration-queue <queue-state.json>" >&2
+    exit 1
+fi
+
+QUEUE_FILE="$1"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ ! -f "$QUEUE_FILE" ]]; then
+    echo "error: queue state file not found: $QUEUE_FILE" >&2
+    exit 1
+fi
+
+schema_version=$(jq -r '.schema_version' "$QUEUE_FILE")
+if [[ "$schema_version" != "1" ]]; then
+    echo "error: unsupported schema_version: $schema_version (expected: 1)" >&2
+    exit 1
+fi
+
+batch_status=$(jq -r '.batch_status' "$QUEUE_FILE")
+if [[ "$batch_status" != "approved" && "$batch_status" != "executing" ]]; then
+    echo "error: queue state batch_status is '$batch_status' — must be 'approved' or 'executing' to execute" >&2
+    exit 1
+fi
+
+RUNS_DIR="$REPO_ROOT/queue-runs"
+mkdir -p "$RUNS_DIR"
+RUN_TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+QUEUE_RUN_FILE="$RUNS_DIR/${RUN_TIMESTAMP}_queue-run.json"
+generated_at_utc="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+source_queue_state_path="$(realpath "$QUEUE_FILE")"
+
+total_jobs=$(jq '.jobs | length' "$QUEUE_FILE")
+approved_jobs=$(jq '[.jobs[] | select(.status == "approved")] | length' "$QUEUE_FILE")
+executed_jobs=0
+
+write_queue_run_record() {
+    local status="$1"
+    local fv="$2"
+    local fs="$3"
+    jq -n \
+        --arg generated_at_utc "$generated_at_utc" \
+        --arg source_queue_state_path "$source_queue_state_path" \
+        --argjson total_jobs "$total_jobs" \
+        --argjson executed_jobs "$executed_jobs" \
+        --arg status "$status" \
+        --argjson failed_venture "$([ -n "$fv" ] && echo "\"$fv\"" || echo 'null')" \
+        --argjson failed_step "$([ -n "$fs" ] && echo "\"$fs\"" || echo 'null')" \
+        '{
+            generated_at_utc: $generated_at_utc,
+            source_queue_state_path: $source_queue_state_path,
+            total_jobs: $total_jobs,
+            executed_jobs: $executed_jobs,
+            status: $status,
+            failed_venture: $failed_venture,
+            failed_step: $failed_step
+        }' > "$QUEUE_RUN_FILE"
+    echo "queue run record -> $QUEUE_RUN_FILE"
+}
+
+write_queue_state() {
+    local updated_at
+    updated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    local tmp_file
+    tmp_file="$(mktemp)"
+    jq --arg updated_at "$updated_at" '.updated_at_utc = $updated_at' "$QUEUE_FILE" > "$tmp_file"
+    mv "$tmp_file" "$QUEUE_FILE"
+}
+
+update_job_field() {
+    local venture="$1"
+    local step="$2"
+    local field="$3"
+    local value="$4"
+    local is_json="$5"
+    local tmp_file
+    tmp_file="$(mktemp)"
+    if [[ "$is_json" == "true" ]]; then
+        jq --arg venture "$venture" \
+           --argjson step "$step" \
+           --argjson value "$value" \
+           --arg field "$field" \
+           '(.jobs[] | select(.venture == $venture and .step == $step) | .[$field]) = $value' \
+           "$QUEUE_FILE" > "$tmp_file"
+    else
+        jq --arg venture "$venture" \
+           --argjson step "$step" \
+           --arg value "$value" \
+           --arg field "$field" \
+           '(.jobs[] | select(.venture == $venture and .step == $step) | .[$field]) = $value' \
+           "$QUEUE_FILE" > "$tmp_file"
+    fi
+    mv "$tmp_file" "$QUEUE_FILE"
+}
+
+update_batch_status() {
+    local failed_count
+    local succeeded_count
+    failed_count=$(jq '[.jobs[] | select(.status == "failed" or .status == "blocked")] | length' "$QUEUE_FILE")
+    succeeded_count=$(jq '[.jobs[] | select(.status == "succeeded")] | length' "$QUEUE_FILE")
+    local new_status
+    if [[ "$failed_count" -gt 0 ]]; then
+        new_status="failed"
+    elif [[ "$succeeded_count" -eq "$total_jobs" ]]; then
+        new_status="succeeded"
+    else
+        new_status="executing"
+    fi
+    local tmp_file
+    tmp_file="$(mktemp)"
+    jq --arg status "$new_status" '.batch_status = $status' "$QUEUE_FILE" > "$tmp_file"
+    mv "$tmp_file" "$QUEUE_FILE"
+}
+
+while read -r job; do
+    venture=$(echo "$job" | jq -r '.venture')
+    step=$(echo "$job" | jq -r '.step')
+    date=$(echo "$job" | jq -r '.date')
+    status=$(echo "$job" | jq -r '.status')
+
+    if [[ "$status" != "approved" ]]; then
+        continue
+    fi
+
+    # per-job policy gate
+    job_workflow_type=$(echo "$job" | jq -r '.workflow_type')
+    job_workflow_spec_version=$(echo "$job" | jq -r '.workflow_spec_version')
+    job_job_type=$(echo "$job" | jq -r '.job_type')
+    job_actual_class=$(echo "$job" | jq -r '.actual_class')
+    job_reason_code=$(echo "$job" | jq -r '.classification_reason_code')
+    job_approval_timestamp=$(echo "$job" | jq -r '.approval_timestamp')
+
+    policy_error=""
+    if [[ "$job_workflow_type" != "code_migration" ]]; then
+        policy_error="workflow_type is '$job_workflow_type' (expected: code_migration)"
+    elif [[ "$job_workflow_spec_version" != "1" ]]; then
+        policy_error="workflow_spec_version is '$job_workflow_spec_version' (expected: 1)"
+    elif [[ "$job_job_type" != "migration" ]]; then
+        policy_error="job_type is '$job_job_type' (expected: migration)"
+    elif [[ "$job_actual_class" != "A" ]]; then
+        policy_error="actual_class is '$job_actual_class' (expected: A)"
+    elif [[ "$job_reason_code" != "A_EXACT_PORT" ]]; then
+        policy_error="classification_reason_code is '$job_reason_code' (expected: A_EXACT_PORT)"
+    elif [[ -z "$job_approval_timestamp" || "$job_approval_timestamp" == "null" ]]; then
+        policy_error="approval_timestamp is null"
+    fi
+
+    if [[ -n "$policy_error" ]]; then
+        echo "error: policy check failed for $venture step $step: $policy_error" >&2
+        update_job_field "$venture" "$step" "status" '"blocked"' "true"
+        write_queue_state
+        update_batch_status
+        write_queue_state
+        write_queue_run_record "failed" "$venture" "$step"
+        echo ""
+        echo "Summary:"
+        echo "  executed: $executed_jobs/$approved_jobs approved jobs"
+        echo "queue state -> $QUEUE_FILE"
+        exit 1
+    fi
+
+    echo "Running job: $venture step $step"
+
+    # -> executing
+    update_job_field "$venture" "$step" "status" '"executing"' "true"
+    write_queue_state
+
+    # execute
+    if ! "$REPO_ROOT/run-migration-execute" \
+        --venture "$venture" \
+        --step "$step" \
+        --date "$date" \
+        --mode auto-openai \
+        --force; then
+        echo "error: execution failed for $venture step $step" >&2
+        update_job_field "$venture" "$step" "status" '"failed"' "true"
+        write_queue_state
+        update_batch_status
+        write_queue_state
+        write_queue_run_record "failed" "$venture" "$step"
+        echo "Queue halted on failure at $venture step $step" >&2
+        echo ""
+        echo "Summary:"
+        echo "  executed: $executed_jobs/$approved_jobs approved jobs"
+        echo "queue state -> $QUEUE_FILE"
+        exit 1
+    fi
+
+    executed_jobs=$((executed_jobs + 1))
+
+    # read latest manifest
+    LOGS_DIR="$REPO_ROOT/ventures/$venture/migration-logs"
+    manifest_path="$(ls -t "$LOGS_DIR"/*"step-${step}"*"run-"*.json 2>/dev/null | head -1 || true)"
+
+    if [[ -z "$manifest_path" ]]; then
+        echo "error: no run manifest found after execution for $venture step $step" >&2
+        update_job_field "$venture" "$step" "status" '"failed"' "true"
+        write_queue_state
+        update_batch_status
+        write_queue_state
+        write_queue_run_record "failed" "$venture" "$step"
+        echo ""
+        echo "Summary:"
+        echo "  executed: $executed_jobs/$approved_jobs approved jobs"
+        echo "queue state -> $QUEUE_FILE"
+        exit 1
+    fi
+
+    manifest_status=$(jq -r '.status' "$manifest_path")
+    update_job_field "$venture" "$step" "latest_run_manifest_path" "\"$manifest_path\"" "true"
+
+    update_job_field "$venture" "$step" "latest_queue_run_record_path" "\"$QUEUE_RUN_FILE\"" "true"
+
+    if [[ "$manifest_status" == "success" ]]; then
+        update_job_field "$venture" "$step" "status" '"succeeded"' "true"
+    else
+        update_job_field "$venture" "$step" "status" '"failed"' "true"
+        write_queue_state
+        update_batch_status
+        write_queue_state
+        write_queue_run_record "failed" "$venture" "$step"
+        echo "error: manifest reports failure for $venture step $step" >&2
+        echo ""
+        echo "Summary:"
+        echo "  executed: $executed_jobs/$approved_jobs approved jobs"
+        echo "queue state -> $QUEUE_FILE"
+        exit 1
+    fi
+
+    write_queue_state
+
+done < <(jq -c '.jobs[]' "$QUEUE_FILE")
+
+update_batch_status
+write_queue_state
+
+write_queue_run_record "success" "" ""
+echo ""
+echo "Queue run complete"
+echo "Summary:"
+echo "  executed: $executed_jobs/$approved_jobs approved jobs"
+echo "queue state -> $QUEUE_FILE"

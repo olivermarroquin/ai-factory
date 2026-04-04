@@ -18,12 +18,14 @@ TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 REPORTS_DIR="$REPO_ROOT/batch-reports"
 mkdir -p "$REPORTS_DIR"
 REPORT_FILE="$REPORTS_DIR/${TIMESTAMP}_batch-report.json"
+QUEUE_STATE_FILE="$REPORTS_DIR/${TIMESTAMP}_queue-state.json"
 
 total_jobs=$(jq 'length' "$JOBS_FILE")
 ready_jobs=0
 blocked_jobs=0
 
 jobs_json="["
+queue_jobs_json="["
 first=1
 
 while read -r job; do
@@ -109,16 +111,47 @@ while read -r job; do
             status: $status
         }')
 
+    queue_job_entry=$(jq -n \
+        --arg workflow_type "$workflow_type" \
+        --arg workflow_spec_version "$workflow_spec_version" \
+        --arg job_type "$job_type" \
+        --arg venture "$venture" \
+        --argjson step "$step" \
+        --arg date "$date" \
+        --arg expected_class "$expected_class" \
+        --arg actual_class "$actual_class" \
+        --arg reason_code "$reason_code" \
+        --arg preflight_report_path "$(realpath "$REPORT_FILE" 2>/dev/null || echo "$REPORT_FILE")" \
+        '{
+            workflow_type: $workflow_type,
+            workflow_spec_version: $workflow_spec_version,
+            job_type: $job_type,
+            venture: $venture,
+            step: $step,
+            date: $date,
+            expected_class: $expected_class,
+            actual_class: $actual_class,
+            classification_reason_code: $reason_code,
+            status: "preflight_ready",
+            preflight_report_path: $preflight_report_path,
+            approval_timestamp: null,
+            latest_run_manifest_path: null,
+            latest_batch_run_record_path: null
+        }')
+
     if [[ "$first" -eq 1 ]]; then
         jobs_json+="$job_entry"
+        queue_jobs_json+="$queue_job_entry"
         first=0
     else
         jobs_json+=",$job_entry"
+        queue_jobs_json+=",$queue_job_entry"
     fi
 
 done < <(jq -c '.[]' "$JOBS_FILE")
 
 jobs_json+="]"
+queue_jobs_json+="]"
 
 jq -n \
     --arg generated_at_utc "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
@@ -138,7 +171,24 @@ jq -n \
         jobs: $jobs
     }' > "$REPORT_FILE"
 
+NOW_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+jq -n \
+    --arg schema_version "1" \
+    --arg created_at_utc "$NOW_UTC" \
+    --arg updated_at_utc "$NOW_UTC" \
+    --arg source_preflight_report "$(realpath "$REPORT_FILE")" \
+    --argjson jobs "$queue_jobs_json" \
+    '{
+        schema_version: $schema_version,
+        created_at_utc: $created_at_utc,
+        updated_at_utc: $updated_at_utc,
+        source_preflight_report: $source_preflight_report,
+        batch_status: "preflight_ready",
+        jobs: $jobs
+    }' > "$QUEUE_STATE_FILE"
+
 echo "report:       $REPORT_FILE"
+echo "queue state -> $QUEUE_STATE_FILE"
 echo "total_jobs:   $total_jobs"
 echo "ready_jobs:   $ready_jobs"
 echo "blocked_jobs: $blocked_jobs"

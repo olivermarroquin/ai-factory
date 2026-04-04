@@ -34,3 +34,19 @@ mv "$tmp_file" "$REPORT_FILE"
 
 echo "Approved: $REPORT_FILE"
 echo "approved_at_utc: $approved_at"
+
+QUEUE_STATE_FILE="${REPORT_FILE/_batch-report.json/_queue-state.json}"
+
+if [[ -f "$QUEUE_STATE_FILE" ]]; then
+    tmp_file="$(mktemp)"
+    jq --arg approved_at "$approved_at" \
+        '.batch_status = "approved"
+        | .updated_at_utc = $approved_at
+        | (.jobs[] | select(.status == "preflight_ready") | .status) = "approved"
+        | (.jobs[] | select(.status == "approved") | .approval_timestamp) = $approved_at' \
+        "$QUEUE_STATE_FILE" > "$tmp_file"
+    mv "$tmp_file" "$QUEUE_STATE_FILE"
+    echo "queue state updated -> $QUEUE_STATE_FILE"
+else
+    echo "warning: no matching queue-state file found: $QUEUE_STATE_FILE" >&2
+fi
