@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 ]]; then
+    echo "usage: show-latest-manifest <venture> <step>" >&2
+    exit 1
+fi
+
+VENTURE="$1"
+STEP="$2"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOGS_DIR="$REPO_ROOT/ventures/$VENTURE/migration-logs"
+
+MANIFEST="$(ls -t "$LOGS_DIR"/*"step-$(printf '%02d' "$STEP")"*"run-"*.json 2>/dev/null | head -1)"
+
+if [[ -z "$MANIFEST" ]]; then
+    echo "error: no manifest found for venture=$VENTURE step=$STEP" >&2
+    exit 1
+fi
+
+cat "$MANIFEST"

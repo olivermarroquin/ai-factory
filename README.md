@@ -40,9 +40,16 @@ Each stage produces a logged artifact. The only stage that writes to the target 
 ```
 ./run-migration-start    # Create migration artifacts for a new step
 ./run-migration-execute  # Execute a migration step (auto or manual)
+./show-latest-manifest   # Print the newest run manifest for a venture + step
 ```
 
-Both scripts resolve the repo root from their own location and forward all arguments unchanged.
+All scripts resolve the repo root from their own location and forward all arguments unchanged.
+
+To inspect the latest run manifest:
+
+```bash
+./show-latest-manifest resume-saas 14
+```
 
 ### Basic workflow
 
