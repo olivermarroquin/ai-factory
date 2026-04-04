@@ -154,6 +154,16 @@ def validate_coder_output(planner_text: str, coder_output: str) -> None:
                 raise ValueError(f"coder output missing required function for exact port: {sig!r}")
 
 
+def validate_reviewer_output(reviewer_output: str) -> None:
+    if not reviewer_output.strip():
+        raise ValueError("reviewer output is empty")
+
+    required_markers = ["status:", "correct:", "issues:", "drift_detected:", "next_safe_step:"]
+    for marker in required_markers:
+        if marker.lower() not in reviewer_output.lower():
+            raise ValueError(f"reviewer output missing required field: {marker!r}")
+
+
 def validate_planner_output(planner_output: str, source_text: str = "") -> tuple[bool, str]:
     if not planner_output.strip():
         return False, "planner output is empty"
@@ -493,6 +503,12 @@ def run_auto_openai(paths: dict[str, Path], args: argparse.Namespace) -> int:
 
     if not result.raw_text.strip():
         print("reviewer returned empty output", file=sys.stderr)
+        return 1
+
+    try:
+        validate_reviewer_output(result.raw_text)
+    except Exception as exc:
+        print(f"[FAIL] Reviewer validation failed: {exc}", file=sys.stderr)
         return 1
 
     try:
