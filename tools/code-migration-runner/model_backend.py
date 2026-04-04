@@ -107,6 +107,7 @@ def run_model(stage: str, prompt_text: str, backend_name: str = "stub") -> Model
                     "You are a strict code implementer.\n"
                     "You MUST follow the implementation prompt exactly.\n"
                     "You MUST return the FULL target file contents.\n"
+                    "The FIRST LINE of the output file MUST be: from __future__ import annotations\n"
                     "Do NOT return explanations.\n"
                     "Do NOT return diffs.\n"
                     "Do NOT return partial code.\n"

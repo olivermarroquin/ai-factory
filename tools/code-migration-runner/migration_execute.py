@@ -467,8 +467,44 @@ def run_auto_openai(paths: dict[str, Path], args: argparse.Namespace) -> int:
         print(f"[FAIL] Coder validation failed: {exc}", file=sys.stderr)
         return 1
 
+    # --- Apply ---
+    coder_output = result.raw_text
+    planner_output = read_text(paths["planner_output"])
+
+    try:
+        target_value = extract_target_file_from_planner(planner_output)
+        target_path = resolve_target_path(target_value)
+        apply_coder_output_to_target(target_path, coder_output, force=args.force)
+        verify_target_matches(target_path, coder_output)
+    except Exception as exc:
+        print(f"error applying coder output: {exc}", file=sys.stderr)
+        return 1
+
+    print(f"applied target file -> {target_path}")
+
+    # --- Reviewer ---
+    reviewer_prompt = read_text(paths["reviewer_prompt"])
+
+    result = run_model("reviewer", reviewer_prompt, backend_name="openai")
+
+    if result.status != "success":
+        print(f"reviewer failed: {result.error_message}", file=sys.stderr)
+        return 1
+
+    if not result.raw_text.strip():
+        print("reviewer returned empty output", file=sys.stderr)
+        return 1
+
+    try:
+        safe_write(paths["reviewer"], result.raw_text, force=args.force)
+    except Exception as exc:
+        print(f"error writing reviewer output: {exc}", file=sys.stderr)
+        return 1
+
+    print(f"saved reviewer output -> {paths['reviewer']}")
+
     print("")
-    print("status: auto-openai analyzer, planner, coder completed")
+    print("status: auto-openai analyzer, planner, coder, apply, reviewer completed")
     return 0
 
 
