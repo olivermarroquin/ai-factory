@@ -358,6 +358,12 @@ def apply_and_review(
         reviewer_output = capture_multiline_input()
 
         try:
+            validate_reviewer_output(reviewer_output)
+        except Exception as exc:
+            print(f"[FAIL] Reviewer validation failed: {exc}", file=sys.stderr)
+            return 1
+
+        try:
             safe_write(paths["reviewer"], reviewer_output, force=args.force)
         except Exception as exc:
             print(f"error writing reviewer output: {exc}", file=sys.stderr)
