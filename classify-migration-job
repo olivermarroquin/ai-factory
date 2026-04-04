@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+VENTURE=""
+STEP=""
+DATE=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --venture) VENTURE="$2"; shift 2 ;;
+        --step)    STEP="$2";    shift 2 ;;
+        --date)    DATE="$2";    shift 2 ;;
+        *) echo "usage: classify-migration-job --venture <venture> --step <step> --date <date>" >&2; exit 1 ;;
+    esac
+done
+
+if [[ -z "$VENTURE" || -z "$STEP" || -z "$DATE" ]]; then
+    echo "usage: classify-migration-job --venture <venture> --step <step> --date <date>" >&2
+    exit 1
+fi
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+actual_class=""
+if ! actual_class=$("$REPO_ROOT/run-migration-execute" \
+    --venture "$VENTURE" \
+    --step "$STEP" \
+    --date "$DATE" \
+    --mode classify-only); then
+    echo "error: classification failed — planner output may not exist for $VENTURE step $STEP" >&2
+    exit 1
+fi
+
+if [[ "$actual_class" == "A" ]]; then
+    execution_allowed="yes"
+else
+    execution_allowed="no"
+fi
+
+echo "venture:           $VENTURE"
+echo "step:              $STEP"
+echo "date:              $DATE"
+echo "actual class:      $actual_class"
+echo "execution allowed: $execution_allowed"
