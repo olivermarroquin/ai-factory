@@ -385,6 +385,29 @@ def apply_and_review(
     return 0
 
 
+def classify_job(planner_output: str) -> str:
+    if not planner_output.strip():
+        return "C"
+
+    low = planner_output.lower()
+
+    # Class C: missing critical structural sections
+    required_sections = [
+        "target file", "target scope", "goal", "constraints",
+        "do not touch", "source context required", "implementation prompt",
+    ]
+    for section in required_sections:
+        if section not in low:
+            return "C"
+
+    # Class A: strongest exact-port signal only
+    if "source context required\nyes" in low:
+        return "A"
+
+    # Default: Class B
+    return "B"
+
+
 def write_manifest(
     paths: dict,
     args: argparse.Namespace,
@@ -569,6 +592,17 @@ def run_auto_openai(paths: dict[str, Path], args: argparse.Namespace) -> int:
     planner_valid, planner_reason = validate_planner_output(result.raw_text, source_text=analyzer_prompt)
     if not planner_valid:
         print(f"[FAIL] Planner validation failed: {planner_reason}", file=sys.stderr)
+        return 1
+
+    # --- Classification ---
+    classification = classify_job(result.raw_text)
+    if classification == "C":
+        print("[FAIL] Job classified as Class C — automated execution not allowed", file=sys.stderr)
+        args.failed_stage = "classification"
+        return 1
+    if classification == "B":
+        print("[WARN] Job classified as Class B — auto-apply not allowed", file=sys.stderr)
+        args.failed_stage = "classification"
         return 1
 
     # --- Coder ---
