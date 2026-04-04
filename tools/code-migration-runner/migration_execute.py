@@ -262,11 +262,11 @@ def extract_target_file_from_planner(planner_text: str) -> str:
     raise ValueError("could not determine target file from planner output")
 
 
-def resolve_target_path(target_value: str) -> Path:
+def resolve_target_path(target_value: str, venture: str = "") -> Path:
     target_value = target_value.strip()
     if target_value.startswith("/"):
         return Path(target_value)
-    repos_root = WORKSPACE / "repos"
+    repos_root = WORKSPACE / "repos" / venture if venture else WORKSPACE / "repos"
     return repos_root / target_value
 
 
@@ -311,7 +311,7 @@ def apply_and_review(
     # --- Apply ---
     try:
         target_value = extract_target_file_from_planner(planner_output)
-        target_path = resolve_target_path(target_value)
+        target_path = resolve_target_path(target_value, venture=args.venture)
         apply_coder_output_to_target(target_path, coder_output, force=args.force)
         verify_target_matches(target_path, coder_output)
     except Exception as exc:
