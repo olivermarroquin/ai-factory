@@ -414,6 +414,7 @@ def write_manifest(
     }
     try:
         manifest_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        print(f"manifest -> {manifest_path}")
     except Exception:
         pass  # manifest write failure must never crash the pipeline
 
