@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import argparse
 import ast
+from datetime import datetime, timezone
+import json
+import os
 from pathlib import Path
 import re
 import sys
@@ -309,6 +312,7 @@ def apply_and_review(
     args: argparse.Namespace,
 ) -> int:
     # --- Apply ---
+    args.failed_stage = "apply"
     try:
         target_value = extract_target_file_from_planner(planner_output)
         target_path = resolve_target_path(target_value, venture=args.venture)
@@ -322,6 +326,7 @@ def apply_and_review(
         print(f"applied target file -> {target_path}")
 
     # --- Reviewer ---
+    args.failed_stage = "reviewer"
     if args.mode == "auto-openai":
         reviewer_prompt = read_text(paths["reviewer_prompt"])
 
@@ -376,6 +381,41 @@ def apply_and_review(
         print(f"saved reviewer output -> {paths['reviewer']}")
 
     return 0
+
+
+def write_manifest(
+    paths: dict,
+    args: argparse.Namespace,
+    status: str,
+    ts: datetime,
+    failed_stage: str | None = None,
+    applied_target_path: str | None = None,
+    backend: str | None = None,
+    model: str | None = None,
+) -> None:
+    timestamp_str = ts.strftime("%Y%m%dT%H%M%SZ")
+    prefix = step_prefix(args.date, args.step)
+    manifest_path = paths["logs_dir"] / f"{prefix}_run-{timestamp_str}.json"
+    data = {
+        "venture": args.venture,
+        "step": int(args.step),
+        "run_date": args.date,
+        "mode": args.mode,
+        "status": status,
+        "failed_stage": failed_stage,
+        "backend": backend,
+        "model": model,
+        "analyzer_output_path": str(paths["analyzer_output"]),
+        "planner_output_path": str(paths["planner_output"]),
+        "coder_output_path": str(paths["coder_output"]),
+        "reviewer_output_path": str(paths["reviewer"]),
+        "applied_target_path": applied_target_path,
+        "timestamp_utc": ts.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    try:
+        manifest_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except Exception:
+        pass  # manifest write failure must never crash the pipeline
 
 
 def run_stub(paths: dict[str, Path], args: argparse.Namespace) -> int:
@@ -480,6 +520,7 @@ def run_auto_stub(paths: dict[str, Path], args: argparse.Namespace) -> int:
 
 def run_auto_openai(paths: dict[str, Path], args: argparse.Namespace) -> int:
     # --- Analyzer ---
+    args.failed_stage = "analyzer"
     analyzer_prompt = read_text(paths["analyzer_prompt"])
 
     result = run_model("analyzer", analyzer_prompt, backend_name="openai")
@@ -501,6 +542,7 @@ def run_auto_openai(paths: dict[str, Path], args: argparse.Namespace) -> int:
     print(f"saved analyzer output -> {paths['analyzer_output']}")
 
     # --- Planner ---
+    args.failed_stage = "planner"
     planner_prompt = read_text(paths["planner_prompt"])
 
     result = run_model("planner", planner_prompt, backend_name="openai")
@@ -527,6 +569,7 @@ def run_auto_openai(paths: dict[str, Path], args: argparse.Namespace) -> int:
         return 1
 
     # --- Coder ---
+    args.failed_stage = "coder"
     coder_prompt = read_text(paths["coder_prompt"])
 
     result = run_model("coder", coder_prompt, backend_name="openai")
@@ -644,35 +687,63 @@ def run_manual_capture_coder_apply_reviewer(paths: dict[str, Path], args: argpar
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
+    args.failed_stage = None
 
     paths = required_paths(args.venture, args.date, args.step)
+    ts = datetime.now(timezone.utc)
 
     try:
         validate_inputs(paths, args.mode)
     except Exception as exc:
         print(f"error: {exc}", file=sys.stderr)
+        write_manifest(paths, args, status="failed", ts=ts, failed_stage="validation")
         return 1
 
-    if args.mode == "stub":
-        return run_stub(paths, args)
-
-    if args.mode == "manual-capture":
-        return run_manual_capture(paths, args)
-
-    if args.mode == "manual-capture-coder-reviewer":
-        return run_manual_capture_coder_reviewer(paths, args)
-
-    if args.mode == "manual-capture-coder-apply-reviewer":
-        return run_manual_capture_coder_apply_reviewer(paths, args)
-
-    if args.mode == "auto-stub":
-        return run_auto_stub(paths, args)
-
+    backend: str | None = None
+    model_name: str | None = None
     if args.mode == "auto-openai":
-        return run_auto_openai(paths, args)
+        backend = "openai"
+        model_name = os.getenv("CODE_MIGRATION_MODEL", "gpt-4.1-mini")
+    elif args.mode == "auto-stub":
+        backend = "stub"
+        model_name = "stub-model"
 
-    print(f"error: unsupported mode {args.mode}", file=sys.stderr)
-    return 1
+    if args.mode == "stub":
+        rc = run_stub(paths, args)
+    elif args.mode == "manual-capture":
+        rc = run_manual_capture(paths, args)
+    elif args.mode == "manual-capture-coder-reviewer":
+        rc = run_manual_capture_coder_reviewer(paths, args)
+    elif args.mode == "manual-capture-coder-apply-reviewer":
+        rc = run_manual_capture_coder_apply_reviewer(paths, args)
+    elif args.mode == "auto-stub":
+        rc = run_auto_stub(paths, args)
+    elif args.mode == "auto-openai":
+        rc = run_auto_openai(paths, args)
+    else:
+        print(f"error: unsupported mode {args.mode}", file=sys.stderr)
+        write_manifest(paths, args, status="failed", ts=ts, failed_stage="dispatch")
+        return 1
+
+    applied_target_path: str | None = None
+    if rc == 0 and args.mode in ("auto-openai", "manual-capture-coder-apply-reviewer"):
+        try:
+            planner_text = read_text(paths["planner_output"])
+            target_value = extract_target_file_from_planner(planner_text)
+            applied_target_path = str(resolve_target_path(target_value, venture=args.venture))
+        except Exception:
+            pass
+
+    write_manifest(
+        paths, args,
+        status="success" if rc == 0 else "failed",
+        ts=ts,
+        backend=backend,
+        model=model_name,
+        applied_target_path=applied_target_path,
+        failed_stage=args.failed_stage if rc != 0 else None,
+    )
+    return rc
 
 
 if __name__ == "__main__":
