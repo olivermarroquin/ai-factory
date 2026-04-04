@@ -21,8 +21,27 @@ if [[ ! -f "$JOBS_FILE" ]]; then
 fi
 
 total_jobs=$(jq 'length' "$JOBS_FILE")
-completed_jobs=0
+previewed_jobs=0
+matched_jobs=0
+mismatched_jobs=0
+executed_jobs=0
+blocked_jobs=0
 last_successful_step=""
+
+print_summary() {
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+        echo "Summary:"
+        echo "  previewed:  $previewed_jobs/$total_jobs"
+        echo "  matched:    $matched_jobs"
+        echo "  mismatched: $mismatched_jobs"
+    else
+        echo "Summary:"
+        echo "  executed:   $executed_jobs/$total_jobs"
+        echo "  matched:    $matched_jobs"
+        echo "  blocked:    $blocked_jobs"
+        echo "  mismatched: $mismatched_jobs"
+    fi
+}
 
 while read -r job; do
     venture=$(echo "$job" | jq -r '.venture')
@@ -52,11 +71,21 @@ while read -r job; do
     fi
 
     if [[ "$actual_class" != "$expected_class" ]]; then
+        mismatched_jobs=$((mismatched_jobs + 1))
+        if [[ "$DRY_RUN" -eq 1 ]]; then
+            previewed_jobs=$((previewed_jobs + 1))
+        else
+            blocked_jobs=$((blocked_jobs + 1))
+        fi
         echo "Class mismatch for step $step: expected $expected_class, got $actual_class" >&2
+        print_summary
         exit 1
     fi
 
+    matched_jobs=$((matched_jobs + 1))
+
     if [[ "$DRY_RUN" -eq 1 ]]; then
+        previewed_jobs=$((previewed_jobs + 1))
         echo "Job preview:"
         echo "  venture:        $venture"
         echo "  step:           $step"
@@ -79,11 +108,11 @@ while read -r job; do
             --mode auto-openai \
             --force; then
             echo "Batch halted on failure at step $step" >&2
-            echo "Summary: $completed_jobs/$total_jobs jobs completed"
+            print_summary
             exit 1
         fi
 
-        completed_jobs=$((completed_jobs + 1))
+        executed_jobs=$((executed_jobs + 1))
         last_successful_step="$step"
     fi
 
@@ -91,8 +120,7 @@ done < <(jq -c '.[]' "$JOBS_FILE")
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
     echo "Dry run complete"
-    echo "Summary: $total_jobs/$total_jobs jobs previewed"
 else
     echo "Batch completed successfully"
-    echo "Summary: $total_jobs/$total_jobs jobs completed"
 fi
+print_summary
