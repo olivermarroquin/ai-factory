@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DRY_RUN=0
+
+if [[ $# -eq 2 && "$1" == "--dry-run" ]]; then
+    DRY_RUN=1
+    JOBS_FILE="$2"
+elif [[ $# -eq 1 && "$1" != "--dry-run" ]]; then
+    JOBS_FILE="$1"
+else
+    echo "usage: run-migration-batch [--dry-run] <jobs.json>" >&2
+    exit 1
+fi
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ ! -f "$JOBS_FILE" ]]; then
+    echo "error: jobs file not found: $JOBS_FILE" >&2
+    exit 1
+fi
+
+total_jobs=$(jq 'length' "$JOBS_FILE")
+completed_jobs=0
+last_successful_step=""
+
+while read -r job; do
+    venture=$(echo "$job" | jq -r '.venture')
+    step=$(echo "$job" | jq -r '.step')
+    date=$(echo "$job" | jq -r '.date')
+
+    expected_class=$(echo "$job" | jq -r '.expected_class')
+
+    if [[ -z "$venture" || -z "$step" || -z "$date" || -z "$expected_class" ]]; then
+        echo "Invalid job entry: missing required fields" >&2
+        exit 1
+    fi
+
+    if [[ "$expected_class" != "A" && "$expected_class" != "B" && "$expected_class" != "C" ]]; then
+        echo "Invalid job entry: expected_class must be A, B, or C (got: $expected_class)" >&2
+        exit 1
+    fi
+
+    actual_class=""
+    if ! actual_class=$("$REPO_ROOT/run-migration-execute" \
+        --venture "$venture" \
+        --step "$step" \
+        --date "$date" \
+        --mode classify-only); then
+        echo "error: could not classify job for step $step (planner output may not exist)" >&2
+        exit 1
+    fi
+
+    if [[ "$actual_class" != "$expected_class" ]]; then
+        echo "Class mismatch for step $step: expected $expected_class, got $actual_class" >&2
+        exit 1
+    fi
+
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+        echo "Job preview:"
+        echo "  venture:        $venture"
+        echo "  step:           $step"
+        echo "  date:           $date"
+        echo "  planned mode:   auto-openai"
+        echo "  expected class: $expected_class"
+        echo "  actual class:   $actual_class"
+    else
+        echo "Running job: $venture step $step"
+        echo "  venture:        $venture"
+        echo "  step:           $step"
+        echo "  date:           $date"
+        echo "  expected class: $expected_class"
+        echo "  actual class:   $actual_class"
+
+        if ! "$REPO_ROOT/run-migration-execute" \
+            --venture "$venture" \
+            --step "$step" \
+            --date "$date" \
+            --mode auto-openai \
+            --force; then
+            echo "Batch halted on failure at step $step" >&2
+            echo "Summary: $completed_jobs/$total_jobs jobs completed"
+            exit 1
+        fi
+
+        completed_jobs=$((completed_jobs + 1))
+        last_successful_step="$step"
+    fi
+
+done < <(jq -c '.[]' "$JOBS_FILE")
+
+if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "Dry run complete"
+    echo "Summary: $total_jobs/$total_jobs jobs previewed"
+else
+    echo "Batch completed successfully"
+    echo "Summary: $total_jobs/$total_jobs jobs completed"
+fi

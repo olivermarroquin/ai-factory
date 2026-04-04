@@ -26,7 +26,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model", default="stub", help="Execution backend")
     parser.add_argument(
         "--mode",
-        choices=["stub", "manual-capture", "manual-capture-coder-reviewer", "manual-capture-coder-apply-reviewer", "auto-stub", "auto-openai"],
+        choices=["stub", "manual-capture", "manual-capture-coder-reviewer", "manual-capture-coder-apply-reviewer", "auto-stub", "auto-openai", "classify-only"],
         default="stub",
         help="Execution mode",
     )
@@ -66,6 +66,11 @@ def required_paths(venture: str, run_date: str, step: str) -> dict[str, Path]:
 def validate_inputs(paths: dict[str, Path], mode: str) -> None:
     if not paths["logs_dir"].exists():
         raise FileNotFoundError(f"migration log folder not found: {paths['logs_dir']}")
+
+    if mode == "classify-only":
+        if not paths["planner_output"].exists():
+            raise FileNotFoundError(f"required file not found: {paths['planner_output']}")
+        return
 
     common_required = {
         "analyzer_prompt": paths["analyzer_prompt"],
@@ -408,6 +413,12 @@ def classify_job(planner_output: str) -> str:
     return "B"
 
 
+def run_classify_only(paths: dict[str, Path]) -> int:
+    planner_output = read_text(paths["planner_output"])
+    print(classify_job(planner_output))
+    return 0
+
+
 def write_manifest(
     paths: dict,
     args: argparse.Namespace,
@@ -734,7 +745,8 @@ def main() -> int:
         validate_inputs(paths, args.mode)
     except Exception as exc:
         print(f"error: {exc}", file=sys.stderr)
-        write_manifest(paths, args, status="failed", ts=ts, failed_stage="validation")
+        if args.mode != "classify-only":
+            write_manifest(paths, args, status="failed", ts=ts, failed_stage="validation")
         return 1
 
     backend: str | None = None
@@ -758,6 +770,8 @@ def main() -> int:
         rc = run_auto_stub(paths, args)
     elif args.mode == "auto-openai":
         rc = run_auto_openai(paths, args)
+    elif args.mode == "classify-only":
+        rc = run_classify_only(paths)
     else:
         print(f"error: unsupported mode {args.mode}", file=sys.stderr)
         write_manifest(paths, args, status="failed", ts=ts, failed_stage="dispatch")
@@ -765,15 +779,16 @@ def main() -> int:
 
     applied_target_path = args.applied_target_path
 
-    write_manifest(
-        paths, args,
-        status="success" if rc == 0 else "failed",
-        ts=ts,
-        backend=backend,
-        model=model_name,
-        applied_target_path=applied_target_path,
-        failed_stage=args.failed_stage if rc != 0 else None,
-    )
+    if args.mode != "classify-only":
+        write_manifest(
+            paths, args,
+            status="success" if rc == 0 else "failed",
+            ts=ts,
+            backend=backend,
+            model=model_name,
+            applied_target_path=applied_target_path,
+            failed_stage=args.failed_stage if rc != 0 else None,
+        )
     return rc
 
 

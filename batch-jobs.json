@@ -1,0 +1,11 @@
+[
+  {
+    "venture": "resume-saas",
+    "step": 15,
+    "date": "2026-04-04",
+    "source": "backend/services/rewrite_orchestrator_v3.py",
+    "target": "backend/services/rewrite_orchestrator_v4.py",
+    "goal": "Port rewrite orchestrator to v4 with same deterministic behavior",
+    "expected_class": "B"
+  }
+]
