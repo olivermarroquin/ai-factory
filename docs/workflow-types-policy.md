@@ -17,7 +17,9 @@ Define the supported and planned workflow types for the controlled execution sys
 | `job_type` | `migration` |
 | Status | **Executable** |
 
-A code migration job ports or transforms a single Python source file into a new target file using the analyzer → planner → coder → apply → reviewer pipeline. Execution is fully automated when the job is classified as Class A with reason code `A_EXACT_PORT`.
+A code migration job ports or transforms a single Python source file into a new target file using the analyzer → planner → coder → apply → reviewer pipeline. Execution is fully automated when the job is classified as Class A with reason code `A_EXACT_PORT` or `A_SCHEMA_PORT`.
+
+This workflow type is actively in use. Steps 17 (`A_EXACT_PORT`) and 18 (`A_SCHEMA_PORT`) of the resume-saas venture were completed through the controlled queue on 2026-04-05.
 
 **Execution path:** `run-migration-preflight` → `approve-batch-report` → `run-migration-batch` → `run-migration-execute --mode auto-openai`
 

@@ -34,31 +34,22 @@ Identify all remaining migration candidates for the `resume-saas` venture and cl
 
 ---
 
-### Active / In-Progress
+### Completed Through Controlled Queue — 2026-04-05
 
-| Step | Source | Target | Class | Reason Code | Ready | Rationale |
-|---|---|---|---|---|---|---|
-| 15 | `backend/services/rewrite_orchestrator_v3.py` | `backend/services/rewrite_orchestrator_v4.py` | A | `A_EXACT_PORT` | Yes | Planner confirmed exact port, `Source Context Required: yes`, single file, deterministic |
-| 16 | `backend/services/rewrite_orchestrator_v3.py` | `backend/services/rewrite_orchestrator_v4.py` | A | `A_EXACT_PORT` | Yes — same as step 15, planner artifact exists | Planner output matches Class A criteria |
-| 17 | `backend/services/rewrite_orchestrator_v3.py` | `backend/services/rewrite_orchestrator_v5.py` | A | `A_EXACT_PORT` | Yes — use 2026-04-05 artifact cycle (2026-04-04 cycle was incomplete, do not queue from it) | Same deterministic port pattern, `Source Context Required: yes` |
+| Step | Source | Target | Reason Code | Status |
+|---|---|---|---|---|
+| 17 | `backend/services/rewrite_orchestrator_v3.py` | `backend/services/rewrite_orchestrator_v5.py` | `A_EXACT_PORT` | **Completed** via controlled queue, 2026-04-05 |
+| 18 | `backend/services/proposal_validator.py` | `backend/schemas/proposal_schema.py` | `A_SCHEMA_PORT` | **Completed** via controlled queue, 2026-04-05 |
 
-> **Note:** Steps 15–17 target rewrite_orchestrator variant files. The v5 file does not yet exist in the repo. Step 17 should only run after step 15/16 are confirmed stable, since v4 is the intermediate step.
-
----
-
-### New Candidates — Ready Now
-
-| Step | Source | Target | Class | Reason Code | Ready | Rationale |
-|---|---|---|---|---|---|---|
-| 18 | `backend/services/proposal_validator.py` | `backend/schemas/proposal_schema.py` | A | `A_EXACT_PORT` | Yes — source is a single complete module, target is empty | `proposal_schema.py` is currently 0 bytes; extracting the JSON schema constant and `Proposal` dataclass from `proposal_validator.py` is a deterministic, single-file port with no new behavior |
+Steps 17 and 18 are the first migrations to complete through the full preflight → approve → queue cycle. Do not re-run them. A fresh preflight cycle is required to queue any follow-on work.
 
 ---
 
-### New Candidates — Blocked (Class B or C)
+### Blocked (Class B or C)
 
 | Target | Class | Reason Code | Blocked Because |
 |---|---|---|---|
-| `backend/api/rewrite.py` | C | `C_AMBIGUOUS_SPEC` | 0 bytes, no spec, requires API design decisions and integration with multiple services — not a port |
+| `backend/api/rewrite.py` | C | `C_AMBIGUOUS_SPEC` | 0 bytes, no spec. **Next planning target** — a rewrite API spec must be written before any job can be queued. |
 | `backend/api/resume.py` | C | `C_AMBIGUOUS_SPEC` | 0 bytes, no spec, upload/parse endpoint requires framework decisions and error-handling design |
 | `backend/api/jobs.py` | C | `C_AMBIGUOUS_SPEC` | 0 bytes, no spec, purpose not defined |
 | `backend/models/` | C | `C_AMBIGUOUS_SPEC` | Empty directory, no source to port, requires architectural decisions |
@@ -66,27 +57,11 @@ Identify all remaining migration candidates for the `resume-saas` venture and cl
 
 ---
 
-## Recommended First Queue
+## Next Queue
 
-Only jobs with existing planner artifacts and confirmed Class A classification.
+Steps 17 and 18 are complete. There are no Class A candidates ready to queue right now.
 
-```json
-[
-  {
-    "workflow_type": "code_migration",
-    "workflow_spec_version": "1",
-    "job_type": "migration",
-    "venture": "resume-saas",
-    "step": 17,
-    "date": "2026-04-04",
-    "expected_class": "A"
-  }
-]
-```
-
-> Step 15 is the current active job. Step 16 targets the same file as step 15 — run 15 first and confirm. Step 17 (`rewrite_orchestrator_v5.py`) is the cleanest next queue candidate. Use the **2026-04-05** artifact cycle — the 2026-04-04 step-17 artifact set was incomplete and must not be used for queueing. The 2026-04-05 cycle has a confirmed successful artifact set and its target file does not yet exist (no overwrite risk).
-
-**Step 18 (`proposal_schema.py`)** is the second recommended queue entry once step 17 is confirmed. Its planner artifact does not yet exist and must be created with `run-migration-start` before it can run.
+The next action is to produce a spec for `backend/api/rewrite.py` (`docs/rewrite-api-spec-v1.md`). No migration job can be queued for the API layer until that spec exists and a planner artifact is generated from it.
 
 ---
 
@@ -119,8 +94,9 @@ Do not queue this through the automated pipeline.
 
 ## Notes
 
-- Steps 2–13 are complete. The migration log records for those steps are the source of truth; do not re-run them.
+- Steps 2–13 are complete (pre-controlled-pipeline). The migration log records for those steps are the source of truth; do not re-run them.
+- Steps 17 and 18 are the first steps completed through the full controlled queue (preflight → approve → queue). Their artifacts are final.
 - The `rewrite_orchestrator.py` (no version suffix) at `backend/services/` is the established v1 foundation. It must not be overwritten by any batch job without explicit operator review.
-- `proposal_schema.py` is 0 bytes and is the cleanest new Class A candidate once a planner artifact is created for it.
-- The API layer is the next major phase of work but requires a separate planning pass before any job can be queued.
-- All steps 15–17 exist in the migration logs as manual runs from earlier sessions. Before re-queuing any of them through the batch system, confirm that the target files are in their expected state.
+- `proposal_schema.py` is now populated by step 18 (`A_SCHEMA_PORT`). Do not re-run step 18.
+- The API layer is the next major phase. `backend/api/rewrite.py` is the first target. A spec document must exist before any migration job can be created for it.
+- The orchestrator version rationalization (`v1`–`v5` → single canonical file) remains Class B work requiring human review. Do not queue it through the automated pipeline.

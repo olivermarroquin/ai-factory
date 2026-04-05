@@ -2,15 +2,7 @@
 
 ## Purpose
 
-AI Factory is the execution layer of my workspace.
-
-It holds:
-
-- workflows
-- venture execution wrappers
-- agent definitions
-- runtime state
-- logs and temporary execution artifacts
+AI Factory is the execution and orchestration layer of the workspace. It runs controlled, policy-gated workflows — currently focused on deterministic code migration.
 
 ## Role in System
 
@@ -35,91 +27,80 @@ Automates multi-stage code migration across repos using a structured pipeline:
 
 Each stage produces a logged artifact. The only stage that writes to the target repo is **apply**.
 
+Only `code_migration` jobs are executable through the controlled pipeline right now. `app_build`, `automation_build`, and `ui_conversion` are policy-defined but not yet runnable.
+
 ### Repo-root entrypoints
 
 ```
-./run-migration-start    # Create migration artifacts for a new step
-./run-migration-execute  # Execute a migration step (auto or manual)
-./show-latest-manifest   # Print the newest run manifest for a venture + step
+./run-migration-start      # Scaffold prompt and artifact files for a new step
+./run-migration-execute    # Execute a migration step (auto or manual)
+./run-migration-preflight  # Assess a batch jobs file, generate report + queue state
+./approve-batch-report     # Mark a preflight report approved for execution
+./run-migration-batch      # Execute from an approved preflight report
+./run-migration-queue      # Execute from an approved queue-state file (coordinator)
+./run-migration-cycle      # Full cycle wrapper: preflight or approved execution
+./classify-migration-job   # Classify a single step without executing
+./show-latest-manifest     # Print the newest run manifest for a venture + step
 ```
 
-All scripts resolve the repo root from their own location and forward all arguments unchanged.
+### Controlled execution flow
 
-To inspect the latest run manifest:
-
-```bash
-./show-latest-manifest resume-saas 14
+```
+1. run-migration-start      → scaffold artifacts for a new step
+2. run-migration-preflight  → assess jobs, generate batch-report + queue-state
+3. approve-batch-report     → set approved=true, advance queue-state to approved
+4. run-migration-cycle      → execute approved queue (via run-migration-queue)
 ```
 
-### Basic workflow
+- `run-migration-batch` executes from an approved preflight report directly.
+- `run-migration-queue` executes from an approved queue-state file with policy enforcement.
+- `run-migration-cycle` is the single operator entrypoint that wraps both preflight and queue execution.
+- Approval is a required explicit gate. Nothing executes from an unapproved report.
 
-1. Run `./run-migration-start` to scaffold all prompt and artifact files for a step.
-2. Run `./run-migration-execute --mode auto-openai` to run the full pipeline automatically, or use a `manual-capture` mode to paste stage outputs interactively.
-3. Review the logged artifacts under `ventures/<venture>/migration-logs/`.
+### Execution policy
 
-### Known-good example: run-migration-start
+Policy lives in `config/migration-execution-policy.json`. It controls:
+- allowed job types, workflow types, workflow spec versions
+- allowed classes (currently: A only)
+- allowed reason codes (currently: `A_EXACT_PORT`, `A_SCHEMA_PORT`)
 
-```bash
-./run-migration-start \
-  --venture resume-saas \
-  --step 15 \
-  --date 2026-04-04 \
-  --source backend/services/rewrite_orchestrator_v3.py \
-  --target backend/services/rewrite_orchestrator_v4.py \
-  --goal "Port rewrite orchestrator to v4 with same deterministic behavior"
-```
+### Reason codes
 
-- `--source` and `--target` are resolved relative to `~/workspace/repos/<venture>/` if not absolute.
-- Creates all prompt and artifact files under `ventures/<venture>/migration-logs/`.
-
-### Known-good example: run-migration-execute
-
-```bash
-./run-migration-execute \
-  --venture resume-saas \
-  --date 2026-04-04 \
-  --step 15 \
-  --mode auto-openai
-```
-
-Supported modes:
-
-| Mode | Description |
+| Code | Meaning |
 |---|---|
-| `stub` | Dry run, prints paths only |
-| `manual-capture` | Paste analyzer and planner output interactively |
-| `manual-capture-coder-reviewer` | Paste coder and reviewer output interactively |
-| `manual-capture-coder-apply-reviewer` | Paste coder output, auto-apply, paste reviewer |
-| `auto-stub` | Runs analyzer and planner with stub model |
-| `auto-openai` | Full pipeline via OpenAI API |
-
-`auto-openai` requires `OPENAI_API_KEY`. Override the model with `CODE_MIGRATION_MODEL` (default: `gpt-4.1-mini`).
+| `A_EXACT_PORT` | Deterministic function/module port with required imports and signatures |
+| `A_SCHEMA_PORT` | Schema/dataclass/model extraction only, no business logic |
 
 ### Artifact locations
 
-All artifacts are written to:
-
+All migration artifacts are written to:
 ```
 ventures/<venture>/migration-logs/<date>_step-<NN>_<artifact>.md
 ```
 
-Examples:
+Preflight reports and queue-state files:
 ```
-ventures/resume-saas/migration-logs/2026-04-04_step-15_analyzer-prompt.md
-ventures/resume-saas/migration-logs/2026-04-04_step-15_planner-output.md
-ventures/resume-saas/migration-logs/2026-04-04_step-15_coder-output.md
-ventures/resume-saas/migration-logs/2026-04-04_step-15_reviewer.md
+batch-reports/<timestamp>_batch-report.json
+batch-reports/<timestamp>_queue-state.json
 ```
 
-The target file written during apply is resolved from the planner output:
-- Absolute paths are used as-is.
-- Relative paths are resolved against `~/workspace/repos/<venture>/`.
+Queue run records:
+```
+queue-runs/<timestamp>_queue-run.json
+```
+
+### Current product progress — resume-saas
+
+Steps 17 and 18 are the first real product migrations completed through the controlled queue:
+
+| Step | Target | Reason Code | Status |
+|---|---|---|---|
+| 17 | `backend/services/rewrite_orchestrator_v5.py` | `A_EXACT_PORT` | Completed 2026-04-05 |
+| 18 | `backend/schemas/proposal_schema.py` | `A_SCHEMA_PORT` | Completed 2026-04-05 |
 
 ### Safety rules
 
-- **apply is the only stage that writes to the target repo.** All other stages write only to migration-logs.
-- **Reviewer output is validated** before it is saved. The reviewer artifact is not written if validation fails.
-- **Coder output is validated** (syntax, required imports, required function signatures) before apply runs.
-- **Planner output is validated** for structure and drift terms before coder runs.
-- Use `--force` to overwrite existing artifacts intentionally. Without it, the scripts refuse to overwrite non-empty files.
-- Planner, coder, and reviewer outputs are each validated before the next stage runs. The pipeline stops and exits non-zero on any validation failure.
+- **apply is the only stage that writes to the target repo.**
+- Planner, coder, and reviewer outputs are each validated before the next stage runs.
+- Use `--force` to overwrite existing artifacts intentionally.
+- A fresh preflight + approval cycle is required before re-executing any queue.
