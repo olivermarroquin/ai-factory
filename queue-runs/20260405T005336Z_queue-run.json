@@ -1,0 +1,9 @@
+{
+  "generated_at_utc": "2026-04-05T00:53:36Z",
+  "source_queue_state_path": "/Users/olivermarroquin/workspace/ai-factory/batch-reports/20260405T005336Z_queue-state.json",
+  "total_jobs": 1,
+  "executed_jobs": 0,
+  "status": "failed",
+  "failed_venture": "resume-saas",
+  "failed_step": "18"
+}

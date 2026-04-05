@@ -4,6 +4,6 @@
     "allowed_workflow_types": ["code_migration"],
     "allowed_workflow_spec_versions": ["1"],
     "allowed_classes": ["A"],
-    "allowed_reason_codes": ["A_EXACT_PORT"]
+    "allowed_reason_codes": ["A_EXACT_PORT", "A_SCHEMA_PORT"]
   }
 }

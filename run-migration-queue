@@ -26,6 +26,26 @@ if [[ "$batch_status" != "approved" && "$batch_status" != "executing" ]]; then
     exit 1
 fi
 
+POLICY_FILE="$REPO_ROOT/config/migration-execution-policy.json"
+if [[ ! -f "$POLICY_FILE" ]]; then
+    echo "error: policy file not found: $POLICY_FILE" >&2
+    exit 1
+fi
+if ! jq empty "$POLICY_FILE" 2>/dev/null; then
+    echo "error: policy file contains invalid JSON: $POLICY_FILE" >&2
+    exit 1
+fi
+
+allowed_classes=()
+while IFS= read -r entry; do
+    allowed_classes+=("$entry")
+done < <(jq -r '.batch_execution.allowed_classes[]' "$POLICY_FILE")
+
+allowed_reason_codes=()
+while IFS= read -r entry; do
+    allowed_reason_codes+=("$entry")
+done < <(jq -r '.batch_execution.allowed_reason_codes[]' "$POLICY_FILE")
+
 RUNS_DIR="$REPO_ROOT/queue-runs"
 mkdir -p "$RUNS_DIR"
 RUN_TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -140,11 +160,25 @@ while read -r job; do
         policy_error="workflow_spec_version is '$job_workflow_spec_version' (expected: 1)"
     elif [[ "$job_job_type" != "migration" ]]; then
         policy_error="job_type is '$job_job_type' (expected: migration)"
-    elif [[ "$job_actual_class" != "A" ]]; then
-        policy_error="actual_class is '$job_actual_class' (expected: A)"
-    elif [[ "$job_reason_code" != "A_EXACT_PORT" ]]; then
-        policy_error="classification_reason_code is '$job_reason_code' (expected: A_EXACT_PORT)"
-    elif [[ -z "$job_approval_timestamp" || "$job_approval_timestamp" == "null" ]]; then
+    else
+        class_allowed=0
+        for allowed in "${allowed_classes[@]}"; do
+            if [[ "$job_actual_class" == "$allowed" ]]; then class_allowed=1; break; fi
+        done
+        if [[ "$class_allowed" -eq 0 ]]; then
+            policy_error="actual_class is '$job_actual_class' (not in allowed_classes)"
+        fi
+    fi
+    if [[ -z "$policy_error" ]]; then
+        reason_allowed=0
+        for allowed in "${allowed_reason_codes[@]}"; do
+            if [[ "$job_reason_code" == "$allowed" ]]; then reason_allowed=1; break; fi
+        done
+        if [[ "$reason_allowed" -eq 0 ]]; then
+            policy_error="classification_reason_code is '$job_reason_code' (not in allowed_reason_codes)"
+        fi
+    fi
+    if [[ -z "$policy_error" ]] && [[ -z "$job_approval_timestamp" || "$job_approval_timestamp" == "null" ]]; then
         policy_error="approval_timestamp is null"
     fi
 
