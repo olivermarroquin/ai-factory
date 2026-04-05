@@ -120,7 +120,7 @@ def coder_output_requires_future_import(planner_text: str, coder_output: str) ->
     return True
 
 
-def validate_coder_output(planner_text: str, coder_output: str) -> None:
+def validate_coder_output(planner_text: str, coder_output: str, reason_code: str = "A_EXACT_PORT") -> None:
     if not coder_output.strip():
         raise ValueError("coder output is empty")
 
@@ -143,23 +143,61 @@ def validate_coder_output(planner_text: str, coder_output: str) -> None:
     if not coder_output_requires_future_import(planner_text, coder_output):
         raise ValueError("coder output is missing required future import")
 
-    planner_low = planner_text.lower()
-    if "source context required\nyes" in planner_low:
-        required_imports = [
-            "from __future__ import annotations",
-            "from typing import Any, Dict, List",
-        ]
-        for imp in required_imports:
-            if imp not in coder_output:
-                raise ValueError(f"coder output missing required import for exact port: {imp!r}")
+    if reason_code == "A_EXACT_PORT":
+        planner_low = planner_text.lower()
+        if "source context required\nyes" in planner_low:
+            required_imports = [
+                "from __future__ import annotations",
+                "from typing import Any, Dict, List",
+            ]
+            for imp in required_imports:
+                if imp not in coder_output:
+                    raise ValueError(f"coder output missing required import for exact port: {imp!r}")
 
-        required_signatures = [
-            "_lines(",
-            "render_rewrite_packet_md(",
-        ]
-        for sig in required_signatures:
-            if sig not in coder_output:
-                raise ValueError(f"coder output missing required function for exact port: {sig!r}")
+            required_signatures = [
+                "_lines(",
+                "render_rewrite_packet_md(",
+            ]
+            for sig in required_signatures:
+                if sig not in coder_output:
+                    raise ValueError(f"coder output missing required function for exact port: {sig!r}")
+
+    elif reason_code == "A_SCHEMA_PORT":
+        tree = ast.parse(coder_output)
+        node_types = {type(node).__name__ for node in ast.walk(tree)}
+
+        # Must contain at least one class or dataclass definition
+        has_class = any(isinstance(node, ast.ClassDef) for node in ast.walk(tree))
+        if not has_class:
+            raise ValueError("schema port coder output contains no class or dataclass definition")
+
+        # Disallow business logic entry points
+        disallowed_names = {"main", "cli", "run", "execute", "start", "handle_request"}
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if node.name.lower() in disallowed_names:
+                    raise ValueError(
+                        f"schema port contains disallowed business logic: function {node.name!r}"
+                    )
+
+        # Imports must be limited to typing, dataclasses, and schema-related packages
+        allowed_import_prefixes = (
+            "typing", "dataclasses", "pydantic", "enum", "__future__",
+            "collections.abc", "typing_extensions",
+        )
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if not any(alias.name.startswith(p) for p in allowed_import_prefixes):
+                        raise ValueError(
+                            f"schema port contains disallowed import: {alias.name!r}"
+                        )
+            elif isinstance(node, ast.ImportFrom):
+                module = node.module or ""
+                if not any(module.startswith(p) for p in allowed_import_prefixes):
+                    raise ValueError(
+                        f"schema port contains disallowed import: from {module!r}"
+                    )
 
 
 def validate_reviewer_output(reviewer_output: str) -> None:
@@ -405,8 +443,50 @@ def classify_job(planner_output: str) -> tuple[str, str]:
         if section not in low:
             return "C", "C_INVALID_STRUCTURE"
 
-    # Class A: strongest exact-port signal only
+    # Class A: require explicit source context signal for all A variants
     if "source context required\nyes" in low:
+        # A_SCHEMA_PORT: goal is limited to porting declarative schema/model/dataclass
+        # definitions only, with no business logic or orchestration
+        schema_port_signals = [
+            "schema",
+            "dataclass",
+            "model definition",
+            "schema definition",
+            "schema only",
+            "declarative",
+            "pydantic",
+            "type definition",
+        ]
+        non_schema_signals = [
+            "render",
+            "orchestrat",
+            "format",
+            "parse",
+            "extract",
+            "validate",
+            "service",
+            "pipeline",
+            "workflow",
+        ]
+        goal_block = ""
+        for line in planner_output.splitlines():
+            if line.strip().lower() == "goal":
+                goal_block = line
+            elif goal_block:
+                goal_block += "\n" + line
+                if line.strip() == "" or line.strip().lower() in (
+                    "constraints", "do not touch", "source context required",
+                    "implementation prompt", "target scope",
+                ):
+                    break
+        goal_low = goal_block.lower()
+
+        has_schema_signal = any(sig in goal_low for sig in schema_port_signals)
+        has_non_schema_signal = any(sig in goal_low for sig in non_schema_signals)
+
+        if has_schema_signal and not has_non_schema_signal:
+            return "A", "A_SCHEMA_PORT"
+
         return "A", "A_EXACT_PORT"
 
     # Default: Class B
@@ -652,7 +732,7 @@ def run_auto_openai(paths: dict[str, Path], args: argparse.Namespace) -> int:
     print(f"saved coder output -> {paths['coder_output']}")
 
     try:
-        validate_coder_output(read_text(paths["planner_output"]), result.raw_text)
+        validate_coder_output(read_text(paths["planner_output"]), result.raw_text, reason_code=reason_code)
     except Exception as exc:
         print(f"[FAIL] Coder validation failed: {exc}", file=sys.stderr)
         return 1
