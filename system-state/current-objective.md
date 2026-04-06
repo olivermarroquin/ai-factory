@@ -39,7 +39,11 @@ After that, the first API work begins: writing the spec for `backend/api/rewrite
 
 ## Immediate Next Steps
 
-1. **System Guardian MVP** — define scope, specify invariant checks, drift detection, and health reporting for the controlled pipeline.
+1. **Implement Guardian ECS Consistency Check** — build `tools/guardian/check_ecs_consistency.py` per `docs/system-guardian-mvp-spec.md` Check 2.
+2. **Implement Guardian Forbidden Transition Check** — build `tools/guardian/check_forbidden_transition.py` per Check 3.
+3. **Implement Guardian Missing Control Artifact Check** — build `tools/guardian/check_missing_artifact.py` per Check 4.
+4. **Implement Guardian engine** — build `tools/guardian/run_guardian.py` that runs all four checks and emits the full JSON output defined in `docs/system-guardian-mvp-spec.md`.
+5. **System Guardian MVP exit review** — confirm all exit condition criteria in `docs/system-guardian-mvp-spec.md` are met.
 
 ---
 
