@@ -8,9 +8,9 @@ Working direction for the current phase of ai-factory development. Tells an oper
 
 ## Current Objective
 
-**Build the System State Surface V1, then the Execution Control System MVP.**
+**Complete the Execution Control System MVP.**
 
-This phase establishes the System State Surface V1. The next phase is Execution Control System MVP.
+System State Surface V1 is complete. ECS MVP spec and resolver exist and have been validated structurally. Work remaining is inside ECS MVP only.
 
 ---
 
@@ -33,28 +33,33 @@ After that, the first API work begins: writing the spec for `backend/api/rewrite
 - A fresh preflight + approval cycle is required before any queue execution. Do not rerun from an old queue-state.
 - Class B work (e.g., consolidating `rewrite_orchestrator_v1` through `v5`) requires human review and must not go through the automated queue.
 - Policy file (`config/migration-execution-policy.json`) is the gate. Nothing executes that is not in the allowlist.
+- System Guardian must not be started until ECS MVP exit condition is met.
+- API spec work must not be started until ECS MVP exit condition is met.
 
 ---
 
 ## Immediate Next Steps
 
-1. **Complete System State Surface** (this conversation) — write `current-system-state.md`, `authoritative-files.md`, `current-objective.md`.
-2. **Execution Control System MVP** — define what it means to inspect and gate execution state programmatically. Likely a read-state tool, a gate-check tool, and a decision surface.
-3. **System Guardian MVP** — define invariant checks, drift detection, and health reporting for the controlled pipeline.
-4. **API spec first** — write `docs/rewrite-api-spec-v1.md` to define the contract for `backend/api/rewrite.py` before any migration job can target the API layer.
+1. **Update authoritative state files** — bring `current-system-state.md` and `current-objective.md` into alignment with actual current reality so the ECS resolver produces accurate output.
+2. **Validate resolver output against updated state** — run `tools/ecs/resolve_next_action.py` and confirm the decision reflects the correct current next step.
+3. **Define ECS gate-check** — specify and implement the rule that determines whether a proposed action is allowed to execute given the current state. This is the core gate mechanism of ECS MVP.
+4. **Define ECS read-state interface** — specify and implement how the ECS surfaces current system state to an operator or agent in a structured, queryable form.
+5. **ECS MVP exit review** — confirm all exit condition criteria are met before proceeding to System Guardian.
 
 ---
 
 ## Not Doing Yet
 
+- System Guardian MVP — not started; blocked until ECS MVP exit condition is met
+- API spec (`docs/rewrite-api-spec-v1.md`) — not started; blocked until ECS MVP exit condition is met
 - Implementing `backend/api/rewrite.py`, `resume.py`, or `jobs.py` — no spec exists
 - Adding `app_build`, `automation_build`, or `ui_conversion` to the execution pipeline
 - Consolidating `rewrite_orchestrator_v1` through `v5` — Class B work, not automated
 - Parallel job execution, partial batch recovery, or cross-venture batches
-- Any new `code_migration` steps until the state surface and execution control are in place
+- Any new `code_migration` steps until ECS MVP exit condition is met
 
 ---
 
 ## Exit Condition
 
-System State Surface is complete when all three files (`current-system-state.md`, `authoritative-files.md`, `current-objective.md`) are written and accurate. Execution Control System MVP begins immediately after.
+ECS MVP is complete when: (1) authoritative state files are current and the resolver produces accurate output against them, (2) the gate-check mechanism is specified and implemented, (3) the read-state interface is specified and implemented, and (4) an exit review confirms all three criteria are met. System Guardian begins immediately after.

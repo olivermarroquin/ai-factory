@@ -8,13 +8,14 @@ Operational snapshot of ai-factory as of 2026-04-06. Provides enough context for
 
 ## Current Phase
 
-**Phase: Post-Migration System Stabilization → Pre-API Build**
+**Phase: ECS MVP In Progress**
 
-- Migration pipeline is complete and proven (steps 17 and 18)
-- System state surface is being established
-- Execution Control System is next
-- System Guardian follows
-- API/backend work has not started (spec not written yet)
+- Migration pipeline complete and proven (steps 17 and 18)
+- System State Surface complete (`current-system-state.md`, `authoritative-files.md`, `current-objective.md` written and validated)
+- ECS MVP spec written (`docs/ecs-mvp-spec.md`), resolver implemented (`tools/ecs/resolve_next_action.py`), and run once against live state
+- ECS MVP structural validation complete; exit condition not yet met
+- System Guardian not started
+- API/backend work not started (spec not written yet)
 
 ---
 
