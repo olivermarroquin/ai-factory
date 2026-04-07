@@ -8,7 +8,7 @@ Operational snapshot of ai-factory as of 2026-04-06. Provides enough context for
 
 ## Current Phase
 
-**Phase: Logging Improvement Implemented — Next-Step Selection**
+**Phase: Service Exception Logging Implemented — Next-Step Selection**
 
 - Migration pipeline complete and proven (steps 17 and 18)
 - System State Surface complete (`current-system-state.md`, `authoritative-files.md`, `current-objective.md`)
@@ -48,6 +48,12 @@ Operational snapshot of ai-factory as of 2026-04-06. Provides enough context for
 - Logging improvement IMPLEMENTED AND VALIDATED — minimal app-level request logging added to `app.py`
   - `docs/logging-improvement-scope-v1.md` — written and accepted
   - `app.py` — named logger with conditional `StreamHandler`; `after_request` hook logs method, path, status code; all three routes confirmed with exact 400-contract responses
+- Service exception logging IMPLEMENTED AND VALIDATED — handler-level `logger.exception()` added to all three handler files
+  - `docs/service-exception-logging-scope-v1.md` — written and accepted
+  - `backend/api/rewrite.py` — `logger.exception("rewrite service call failed")` in `except Exception` block; 500 contract unchanged
+  - `backend/api/resume.py` — `logger.exception("resume parse service call failed")` in `except Exception` block; 500 contract unchanged
+  - `backend/api/jobs.py` — `logger.exception("job description parse service call failed")` in `except Exception` block; 500 contract unchanged
+  - Validation confirmed ERROR-level log emission with full traceback for all three handlers
 
 ---
 
