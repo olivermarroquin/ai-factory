@@ -8,13 +8,23 @@ Operational snapshot of ai-factory as of 2026-04-06. Provides enough context for
 
 ## Current Phase
 
-**Phase: API Spec — Next**
+**Phase: Rewrite API Slice Fully Validated — Next-Step Selection**
 
 - Migration pipeline complete and proven (steps 17 and 18)
 - System State Surface complete (`current-system-state.md`, `authoritative-files.md`, `current-objective.md`)
 - ECS MVP complete — resolver, gate-check, and read-state all specified, implemented, and exit-reviewed
 - System Guardian MVP complete — all four checks (stale state, ECS consistency, forbidden transition, missing artifact) and engine specified, implemented, and exit-reviewed
-- API/backend work not started; spec (`docs/rewrite-api-spec-v1.md`) is next
+- Rewrite API slice FULLY VALIDATED — spec → implementation → 14 tests → Flask Blueprint → app wiring → end-to-end HTTP confirmed
+  - `docs/rewrite-api-spec-v1.md` — written and accepted
+  - `docs/rewrite-api-test-scope-v1.md` — written and accepted
+  - `docs/rewrite-api-framework-adapter-scope-v1.md` — written and accepted
+  - `docs/rewrite-api-app-wiring-scope-v1.md` — written and accepted
+  - `backend/api/rewrite.py` — implemented, spec-reviewed, error contract corrected
+  - `backend/services/rewrite_orchestrator_v5.run_rewrite()` — implemented
+  - `tests/backend/test_rewrite_api.py` — 14 tests implemented, all passing
+  - `backend/api/rewrite_routes.py` — Flask Blueprint implemented, route smoke-tested
+  - `app.py` — Flask app created, `rewrite_bp` registered, `POST /rewrite` end-to-end confirmed
+- No work started on `backend/api/resume.py` or `backend/api/jobs.py`
 
 ---
 
@@ -99,11 +109,24 @@ Steps completed through the controlled queue (2026-04-05):
 
 Steps 17 and 18 are the proof that the controlled system works end-to-end for both reason-code variants.
 
+Implemented (rewrite API slice):
+
+| File | Status |
+| ---- | ------ |
+| `backend/api/rewrite.py` | Complete — implemented, spec-reviewed, error contract fixed |
+| `backend/services/rewrite_orchestrator_v5.py` | Complete — `run_rewrite()` added |
+| `docs/rewrite-api-spec-v1.md` | Complete — accepted contract |
+| `docs/rewrite-api-test-scope-v1.md` | Complete — 14 test cases defined and accepted |
+| `docs/rewrite-api-framework-adapter-scope-v1.md` | Complete — Flask adapter scope accepted |
+| `tests/backend/test_rewrite_api.py` | Complete — 14 tests implemented, all passing |
+| `backend/api/rewrite_routes.py` | Complete — Flask Blueprint, route smoke-tested |
+| `docs/rewrite-api-app-wiring-scope-v1.md` | Complete — app wiring scope accepted |
+| `app.py` | Complete — Flask app, `rewrite_bp` registered, end-to-end confirmed |
+
 Not yet implemented:
 
-- `backend/api/rewrite.py` — 0 bytes, no spec
-- `backend/api/resume.py` — 0 bytes, no spec
-- `backend/api/jobs.py` — 0 bytes, no spec
+- `backend/api/resume.py` — no spec, not started
+- `backend/api/jobs.py` — no spec, not started
 - `backend/models/` — empty directory
 
 ---
