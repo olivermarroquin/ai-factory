@@ -8,7 +8,7 @@ Operational snapshot of ai-factory as of 2026-04-06. Provides enough context for
 
 ## Current Phase
 
-**Phase: Resume API Slice Route-Validated — Next-Step Selection**
+**Phase: Logging Improvement Implemented — Next-Step Selection**
 
 - Migration pipeline complete and proven (steps 17 and 18)
 - System State Surface complete (`current-system-state.md`, `authoritative-files.md`, `current-objective.md`)
@@ -24,14 +24,30 @@ Operational snapshot of ai-factory as of 2026-04-06. Provides enough context for
   - `tests/backend/test_rewrite_api.py` — 14 tests implemented, all passing
   - `backend/api/rewrite_routes.py` — Flask Blueprint implemented, route smoke-tested
   - `app.py` — Flask app created, `rewrite_bp` registered, `POST /rewrite` end-to-end confirmed
-- Resume API slice ROUTE-VALIDATED — spec, implementation, 12 tests passing, Flask adapter scoped, implemented, and smoke-tested
+- Resume API slice FULLY VALIDATED — spec → implementation → 12 tests → Flask Blueprint → app wiring → end-to-end HTTP confirmed
   - `docs/resume-api-spec-v1.md` — written and accepted
   - `docs/resume-api-test-scope-v1.md` — written and accepted
   - `docs/resume-api-framework-adapter-scope-v1.md` — written and accepted
+  - `docs/resume-api-app-wiring-scope-v1.md` — written and accepted
   - `backend/api/resume.py` — implemented, spec-reviewed
   - `tests/backend/test_resume_api.py` — 12 tests implemented, all passing
   - `backend/api/resume_routes.py` — Flask Blueprint implemented, route smoke-tested
-- No work started on `backend/api/jobs.py`
+  - `app.py` — `resume_bp` registered, `POST /resume/parse` end-to-end confirmed
+- Jobs API slice FULLY VALIDATED — spec → implementation → 11 tests → Flask Blueprint → app wiring → end-to-end HTTP confirmed
+  - `docs/jobs-api-spec-v1.md` — written and accepted
+  - `docs/jobs-api-test-scope-v1.md` — written and accepted
+  - `docs/jobs-api-framework-adapter-scope-v1.md` — written and accepted
+  - `docs/jobs-api-app-wiring-scope-v1.md` — written and accepted
+  - `backend/api/jobs.py` — implemented, spec-reviewed
+  - `tests/backend/test_jobs_api.py` — 11 tests implemented, all passing
+  - `backend/api/jobs_routes.py` — Flask Blueprint implemented, route smoke-tested
+  - `app.py` — updated, `jobs_bp` registered, `POST /jobs/parse` end-to-end confirmed
+- App structure improvement IMPLEMENTED AND VALIDATED — `app.py` refactored to application factory pattern
+  - `docs/app-structure-improvement-scope-v1.md` — written and accepted
+  - `app.py` — refactored to `create_app() -> Flask`; all three routes reachable, exact 400-contract validation confirmed
+- Logging improvement IMPLEMENTED AND VALIDATED — minimal app-level request logging added to `app.py`
+  - `docs/logging-improvement-scope-v1.md` — written and accepted
+  - `app.py` — named logger with conditional `StreamHandler`; `after_request` hook logs method, path, status code; all three routes confirmed with exact 400-contract responses
 
 ---
 
@@ -130,20 +146,34 @@ Implemented (rewrite API slice):
 | `docs/rewrite-api-app-wiring-scope-v1.md` | Complete — app wiring scope accepted |
 | `app.py` | Complete — Flask app, `rewrite_bp` registered, end-to-end confirmed |
 
-In progress / route-validated (resume API slice):
+Complete (resume API slice):
 
 | File | Status |
 | ---- | ------ |
 | `docs/resume-api-spec-v1.md` | Complete — accepted contract |
 | `docs/resume-api-test-scope-v1.md` | Complete — 12 test cases defined and accepted |
 | `docs/resume-api-framework-adapter-scope-v1.md` | Complete — Flask adapter scope accepted |
+| `docs/resume-api-app-wiring-scope-v1.md` | Complete — app wiring scope accepted |
 | `backend/api/resume.py` | Complete — implemented, spec-reviewed |
 | `tests/backend/test_resume_api.py` | Complete — 12 tests implemented, all passing |
 | `backend/api/resume_routes.py` | Complete — Flask Blueprint, route smoke-tested |
+| `app.py` | Updated — `resume_bp` registered, `POST /resume/parse` end-to-end confirmed |
+
+Complete (jobs API slice):
+
+| File | Status |
+| ---- | ------ |
+| `docs/jobs-api-spec-v1.md` | Complete — accepted contract |
+| `docs/jobs-api-test-scope-v1.md` | Complete — 11 test cases defined and accepted |
+| `docs/jobs-api-framework-adapter-scope-v1.md` | Complete — Flask adapter scope accepted |
+| `docs/jobs-api-app-wiring-scope-v1.md` | Complete — app wiring scope accepted |
+| `backend/api/jobs.py` | Complete — implemented, spec-reviewed |
+| `tests/backend/test_jobs_api.py` | Complete — 11 tests implemented, all passing |
+| `backend/api/jobs_routes.py` | Complete — Flask Blueprint implemented, route smoke-tested |
+| `app.py` | Updated — `jobs_bp` registered, `POST /jobs/parse` end-to-end confirmed |
 
 Not yet implemented:
 
-- `backend/api/jobs.py` — no spec, not started
 - `backend/models/` — empty directory
 
 ---
