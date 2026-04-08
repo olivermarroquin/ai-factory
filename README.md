@@ -2,105 +2,268 @@
 
 ## Purpose
 
-AI Factory is the execution and orchestration layer of the workspace. It runs controlled, policy-gated workflows — currently focused on deterministic code migration.
+AI Factory is the **execution and orchestration layer** of the system.
 
-## Role in System
+It runs **controlled, state-driven workflows** under strict policy and validation rules.
 
-- second-brain = thinking and documentation
-- repos = source code
-- ai-agency-core = reusable standards, prompts, templates
-- ai-factory = execution and orchestration
+This is not a code repository or knowledge base — it is the system responsible for:
 
-## Rules
-
-- product source code does not live here
-- reusable standards do not originate here
-- this layer wraps, runs, and coordinates work
-- each venture should have a clear execution folder
+- executing work
+- enforcing correctness
+- coordinating workflows across projects
+- preventing drift and invalid actions
 
 ---
 
-## Code Migration System
+## System Role
 
-Automates multi-stage code migration across repos using a structured pipeline:
-**analyzer → planner → coder → apply → reviewer**
+AI Factory operates within a larger system:
 
-Each stage produces a logged artifact. The only stage that writes to the target repo is **apply**.
+- **second-brain / knowledge OS** → thinking, structured knowledge, long-term intelligence
+- **repos (e.g., resume-saas)** → source code and product implementations
+- **ai-agency-core** → reusable standards, prompts, templates
+- **ai-factory** → execution, orchestration, validation, and control
 
-Only `code_migration` jobs are executable through the controlled pipeline right now. `app_build`, `automation_build`, and `ui_conversion` are policy-defined but not yet runnable.
+AI Factory does not own ideas or code — it **executes and governs them**.
 
-### Repo-root entrypoints
+---
 
-```
-./run-migration-start      # Scaffold prompt and artifact files for a new step
-./run-migration-execute    # Execute a migration step (auto or manual)
-./run-migration-preflight  # Assess a batch jobs file, generate report + queue state
-./approve-batch-report     # Mark a preflight report approved for execution
-./run-migration-batch      # Execute from an approved preflight report
-./run-migration-queue      # Execute from an approved queue-state file (coordinator)
-./run-migration-cycle      # Full cycle wrapper: preflight or approved execution
-./classify-migration-job   # Classify a single step without executing
-./show-latest-manifest     # Print the newest run manifest for a venture + step
-```
+## System Model (Non-Negotiable)
 
-### Controlled execution flow
+All work follows a strict execution model:
+state → decision → spec → scope → review → implement → validate → update state
 
-```
-1. run-migration-start      → scaffold artifacts for a new step
-2. run-migration-preflight  → assess jobs, generate batch-report + queue-state
-3. approve-batch-report     → set approved=true, advance queue-state to approved
-4. run-migration-cycle      → execute approved queue (via run-migration-queue)
-```
+Key rules:
 
-- `run-migration-batch` executes from an approved preflight report directly.
-- `run-migration-queue` executes from an approved queue-state file with policy enforcement.
-- `run-migration-cycle` is the single operator entrypoint that wraps both preflight and queue execution.
-- Approval is a required explicit gate. Nothing executes from an unapproved report.
+- No work begins without an **explicit state selection**
+- No implementation occurs without a **defined and accepted scope**
+- Every step must produce **validation evidence**
+- State must be updated after every completed phase
 
-### Execution policy
+This model is enforced by system components below.
 
-Policy lives in `config/migration-execution-policy.json`. It controls:
-- allowed job types, workflow types, workflow spec versions
-- allowed classes (currently: A only)
-- allowed reason codes (currently: `A_EXACT_PORT`, `A_SCHEMA_PORT`)
+---
 
-### Reason codes
+## Core Systems
 
-| Code | Meaning |
-|---|---|
-| `A_EXACT_PORT` | Deterministic function/module port with required imports and signatures |
-| `A_SCHEMA_PORT` | Schema/dataclass/model extraction only, no business logic |
+### Execution Control System (ECS)
 
-### Artifact locations
+ECS determines **what happens next**.
 
-All migration artifacts are written to:
-```
-ventures/<venture>/migration-logs/<date>_step-<NN>_<artifact>.md
-```
+Responsibilities:
 
-Preflight reports and queue-state files:
-```
-batch-reports/<timestamp>_batch-report.json
-batch-reports/<timestamp>_queue-state.json
-```
+- reads current system state
+- evaluates allowed transitions
+- outputs the next valid action
 
-Queue run records:
-```
-queue-runs/<timestamp>_queue-run.json
-```
+Entrypoint:
+python3 tools/ecs/resolve_next_action.py
 
-### Current product progress — resume-saas
+ECS guarantees:
 
-Steps 17 and 18 are the first real product migrations completed through the controlled queue:
+- no arbitrary execution
+- no skipped steps
+- deterministic progression
 
-| Step | Target | Reason Code | Status |
-|---|---|---|---|
-| 17 | `backend/services/rewrite_orchestrator_v5.py` | `A_EXACT_PORT` | Completed 2026-04-05 |
-| 18 | `backend/schemas/proposal_schema.py` | `A_SCHEMA_PORT` | Completed 2026-04-05 |
+---
 
-### Safety rules
+### System Guardian
 
-- **apply is the only stage that writes to the target repo.**
-- Planner, coder, and reviewer outputs are each validated before the next stage runs.
-- Use `--force` to overwrite existing artifacts intentionally.
-- A fresh preflight + approval cycle is required before re-executing any queue.
+System Guardian validates **whether actions are allowed and complete**.
+
+Responsibilities:
+
+- detects stale or inconsistent state
+- blocks invalid transitions
+- ensures required artifacts exist
+- verifies validation evidence before progression
+
+Guardian enforces:
+
+- no silent failures
+- no missing steps
+- no invalid system transitions
+
+---
+
+## Current Capabilities
+
+The system has fully implemented and validated:
+
+### API Slices (resume-saas)
+
+- rewrite API (spec → tests → route → app wiring)
+- resume API (spec → tests → route → app wiring)
+- jobs API (spec → tests → route → app wiring)
+
+### Backend Structure
+
+- Flask routing via Blueprints
+- `create_app()` application factory pattern
+- app-level request logging (method, path, status)
+- handler-level exception logging with full traceback
+
+All routes:
+
+- fully tested
+- validated end-to-end
+- aligned with strict API contracts
+
+---
+
+## Code Migration System (Current Primary Workflow)
+
+AI Factory currently executes **deterministic code migration workflows**.
+
+Pipeline:
+analyzer → planner → coder → apply → reviewer
+
+- Each stage produces a logged artifact
+- Only **apply** writes to the target repository
+- Every stage is validated before progression
+
+---
+
+### Repo-root Entrypoints
+
+./run-migration-start
+./run-migration-execute
+./run-migration-preflight
+./approve-batch-report
+./run-migration-batch
+./run-migration-queue
+./run-migration-cycle
+./classify-migration-job
+./show-latest-manifest
+
+---
+
+### Controlled Execution Flow
+
+1. run-migration-start
+2. run-migration-preflight
+3. approve-batch-report
+4. run-migration-cycle
+
+Key rules:
+
+- approval is mandatory
+- no execution from unapproved state
+- queue execution is policy-gated
+
+---
+
+### Execution Policy
+
+Defined in:
+config/migration-execution-policy.json
+
+Controls:
+
+- allowed job types
+- allowed workflow types
+- allowed classes and reason codes
+
+---
+
+### Reason Codes
+
+| Code          | Meaning                            |
+| ------------- | ---------------------------------- |
+| A_EXACT_PORT  | Deterministic function/module port |
+| A_SCHEMA_PORT | Schema/model extraction only       |
+
+---
+
+### Artifact Locations
+
+Migration artifacts:
+ventures/<venture>/migration-logs/
+
+Batch + queue:
+batch-reports/
+queue-runs/
+
+---
+
+### Current Progress (resume-saas)
+
+| Step | Target                     | Reason Code   | Status    |
+| ---- | -------------------------- | ------------- | --------- |
+| 17   | rewrite_orchestrator_v5.py | A_EXACT_PORT  | Completed |
+| 18   | proposal_schema.py         | A_SCHEMA_PORT | Completed |
+
+---
+
+## Safety Rules
+
+- **Only `apply` writes to target repos**
+- No execution without approval
+- All stages must validate before proceeding
+- No overwriting without explicit `--force`
+- Every run must produce traceable artifacts
+
+---
+
+## Supported Workflow Types (System-Level)
+
+Currently executable:
+
+- code_migration
+
+Defined but not yet executable:
+
+- app_build
+- automation_build
+- ui_conversion
+
+Future:
+
+- all workflows must conform to ECS + Guardian enforcement
+
+---
+
+## Future Direction (Critical)
+
+AI Factory is evolving into a **general-purpose execution system** for:
+
+- migrations
+- app builds
+- automation systems
+- multi-step AI workflows
+
+All future workflows must:
+
+- be state-driven
+- be spec/scoped before execution
+- produce validation evidence
+- pass Guardian validation
+
+---
+
+## Constraints (Non-Negotiable)
+
+- No product source code lives here
+- No reusable standards originate here
+- No unscoped execution is allowed
+- No skipping ECS decisions
+- No bypassing validation steps
+
+Everything must support:
+
+- execution
+- correctness
+- scalability
+- future automation
+
+---
+
+## Exit Condition
+
+This README is accurate when:
+
+- AI Factory is clearly defined as the execution layer
+- ECS and Guardian roles are explicit
+- migration system is fully documented
+- system constraints are enforced
+- future workflow direction is clear
