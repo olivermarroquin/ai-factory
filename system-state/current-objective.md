@@ -1,8 +1,8 @@
 # Current Objective
 
-## Objective
+## Current Objective
 
-Re-establish truthful, enforceable system control by closing the gap between documented control architecture and actual runtime behavior.
+Re-establish full system control by enforcing execution correctness, preventing drift, and aligning all execution with system state and policy.
 
 ---
 
@@ -22,9 +22,11 @@ The bottleneck is enforcement.
 
 ---
 
-## Immediate Next Step
+## Immediate Next Steps
 
-Make Guardian a required pre-execution gate in the actual execution flow.
+1. Strengthen Guardian enforcement to fully prevent execution drift across all workflows
+2. Align ECS decisions with execution paths to eliminate ambiguity in next-step selection
+3. Ensure all execution is gated by validated system state, policy, and objective alignment
 
 ---
 
@@ -38,13 +40,12 @@ This objective is complete when:
 
 ---
 
-## Constraints
+## Current Constraints
 
-- do not add new workflow types
-- do not expand product scope
-- do not describe ECS as runtime-controlling before it is wired in
-- do not describe Guardian as enforced before it is wired in
-- do not update state based on assumptions rather than repo evidence
+- do not execute migration work while system enforcement is incomplete
+- do not expand workflow types beyond code_migration
+- do not bypass Guardian or ECS checks
+- do not introduce automation before control is fully enforced
 
 ---
 
