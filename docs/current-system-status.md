@@ -2,7 +2,25 @@
 
 ## Purpose
 
-Provide a concise, accurate snapshot of the ai-factory controlled execution system as of 2026-04-05. This document gives an operator or model enough context to understand where the system stands without reading chat history or source code.
+Provide a concise, accurate snapshot of the ai-factory controlled execution system based on current repository reality and reconciled state.
+
+This file is an operational status document. It must reflect actual implemented behavior, not intended architecture.
+
+---
+
+## Current System Phase
+
+**Phase: Core System Stabilization — State Sync Completed, Enforcement Still Partial**
+
+The system has moved beyond early migration proof-of-concept status, but it is not yet a fully controlled execution system.
+
+Current reality:
+
+- the migration system is implemented and operational
+- resume-saas has advanced materially as a migration validation harness
+- ECS exists as implemented tooling but does not control runtime execution
+- Guardian exists as implemented tooling but does not enforce runtime execution
+- Context transfer still depends on manual state files and operator discipline
 
 ---
 
@@ -19,100 +37,142 @@ Provide a concise, accurate snapshot of the ai-factory controlled execution syst
 | Supported reason codes | `A_EXACT_PORT`, `A_SCHEMA_PORT` |
 
 The full execution path is:
-```
+
+```text
 run-migration-start
   → run-migration-preflight <batch-jobs.json>
   → approve-batch-report <batch-report.json>
   → run-migration-cycle --approved-report <batch-report.json>
-```
+run-migration-cycle delegates queue execution to run-migration-queue.
 
-`run-migration-cycle` delegates execution to `run-migration-queue`, which reads the queue-state file and applies policy-driven gating before running each job.
+Current Control Components
+ECS
 
----
+Implemented files exist for:
 
-## Current Control Mechanisms
+tools/ecs/resolve_next_action.py
+tools/ecs/check_action_allowed.py
+tools/ecs/read_state.py
 
-| Mechanism | Where enforced |
-|---|---|
-| Planner structural validation | `migration_execute.py` before coder runs |
-| Coder output validation (syntax, imports, signatures) | `migration_execute.py` — branched by reason code |
-| Reviewer output validation | `migration_execute.py` before reviewer artifact is saved |
-| Classification (class + reason code) | `classify_job()` in `migration_execute.py` |
-| Expected vs actual class enforcement | `run-migration-preflight`, `run-migration-batch` |
-| Preflight report | `run-migration-preflight` → `batch-reports/` |
-| Explicit approval gate | `approve-batch-report` sets `approved=true` |
-| Queue state | Written by `run-migration-preflight`, advanced by `approve-batch-report`, consumed by `run-migration-queue` |
-| Policy-driven class/reason-code gating | `config/migration-execution-policy.json`, enforced by `run-migration-batch` and `run-migration-queue` |
-| Immutable per-run manifests | Written by `migration_execute.py` to `ventures/<venture>/migration-logs/` |
-| Queue-run records | Written by `run-migration-queue` to `queue-runs/` |
+Current status:
 
----
+reads system-state files
+resolves a next action
+supports consistency checking
+not invoked by migration runtime scripts
 
-## Current Product Migration Progress — resume-saas
+Assessment: implemented, but not runtime-controlling execution.
 
-### Completed (pre-controlled-pipeline, steps 2–13)
+Guardian
 
-| Target | Status |
-|---|---|
-| `backend/services/jd_parser.py` | Done |
-| `backend/services/resume_parser.py` | Done |
-| `backend/services/proposal_validator.py` | Done |
-| `backend/services/rewrite_formatter.py` | Done |
-| `backend/services/rewrite_orchestrator.py` | Done |
+Implemented files exist for:
 
-### Completed (controlled queue, 2026-04-05)
+tools/guardian/run_guardian.py
+tools/guardian/check_stale_state.py
+tools/guardian/check_ecs_consistency.py
+tools/guardian/check_forbidden_transition.py
+tools/guardian/check_missing_artifact.py
 
-| Step | Target | Reason Code |
-|---|---|---|
-| 17 | `backend/services/rewrite_orchestrator_v5.py` | `A_EXACT_PORT` |
-| 18 | `backend/schemas/proposal_schema.py` | `A_SCHEMA_PORT` |
+Current status:
 
-Steps 17 and 18 are the first migrations to complete through the full preflight → approve → queue cycle. They are the proof that the controlled system works end-to-end for both reason-code variants.
+checks are implemented
+Guardian is invoked manually
+no execution path requires Guardian pass before runtime execution
 
-### Not yet implemented
+Assessment: implemented, but not runtime-enforcing execution.
 
-- `backend/api/rewrite.py` — 0 bytes, no spec
-- `backend/api/resume.py` — 0 bytes, no spec
-- `backend/api/jobs.py` — 0 bytes, no spec
-- `backend/models/` — empty directory
+Context System
 
----
+Current status:
 
-## Current Artifacts and State Files
+no dedicated Context Engine implementation exists
+no tools/context/ runtime component exists
+effective context transfer relies on:
+system-state/current-system-state.md
+system-state/current-objective.md
+system-state/authoritative-files.md
 
-| Artifact type | Location |
-|---|---|
-| Migration logs (per step) | `ventures/<venture>/migration-logs/` |
-| Run manifests | `ventures/<venture>/migration-logs/<date>_step-<NN>_run-<timestamp>.json` |
-| Preflight reports | `batch-reports/<timestamp>_batch-report.json` |
-| Queue-state files | `batch-reports/<timestamp>_queue-state.json` |
-| Queue-run records | `queue-runs/<timestamp>_queue-run.json` |
-| Batch run records | `batch-runs/<timestamp>_batch-run.json` |
-| Execution policy | `config/migration-execution-policy.json` |
+Assessment: documented, but not implemented.
 
----
+Knowledge OS
 
-## What Is Proven
+No implemented component has been verified in current repo reality.
 
-- The full preflight → approve → queue cycle works end-to-end for `code_migration` jobs.
-- `A_EXACT_PORT` and `A_SCHEMA_PORT` both classify, validate, and execute correctly through the same pipeline.
-- Policy-driven gating (class + reason code) is enforced at both `run-migration-batch` and `run-migration-queue`.
-- Queue state is produced by preflight, advanced by approval, and consumed by the coordinator — no manual syncing required.
-- Coder validation is correctly branched by reason code: `A_EXACT_PORT` enforces specific functions; `A_SCHEMA_PORT` enforces schema structure and rejects business logic.
+Assessment: not currently represented as an implemented system component.
 
----
+Current Migration System Status
 
-## What Is Planned Next
+The migration system is the most mature and operational part of the system.
 
-1. **Write `docs/rewrite-api-spec-v1.md`** — define the contract for `backend/api/rewrite.py` before any migration job can be queued for the API layer.
-2. **Rationalize orchestrator versions** — `rewrite_orchestrator_v1` through `v5` need to be consolidated into a single canonical file. This is Class B work requiring human review; it must not go through the automated queue.
-3. **API layer migration** — `backend/api/rewrite.py`, `resume.py`, `jobs.py` — each requires a spec, a planner artifact, and a new classification scheme appropriate to API endpoint generation. Not started.
+Implemented capabilities include:
 
----
+preflight classification
+approval gate
+queue-state creation and advancement
+per-job policy gating
+analyzer → planner → coder → apply → reviewer execution path
+per-run manifests
+queue-run and batch-run records
 
-## Notes
+This is the only currently proven execution system.
 
-- `app_build`, `automation_build`, and `ui_conversion` are defined in `docs/workflow-types-policy.md` but are not executable. They must not be added to `config/migration-execution-policy.json` until their full execution infrastructure is built.
-- A successful queue must not be rerun directly. Any repeat execution requires a fresh preflight + approval cycle.
-- The policy file at `config/migration-execution-policy.json` is the single source of truth for what classes and reason codes are allowed to execute. Changes to allowed reason codes require editing that file only.
-- `run-migration-batch` and `run-migration-queue` both enforce the same policy file but are independent entrypoints. `run-migration-cycle` is the preferred single operator entrypoint.
+Current Product-Harness Status — resume-saas
+
+resume-saas is currently serving as the migration validation harness and system test target.
+
+Confirmed implemented backend/API files
+backend/api/rewrite.py
+backend/api/rewrite_routes.py
+backend/api/resume.py
+backend/api/resume_routes.py
+backend/api/jobs.py
+backend/api/jobs_routes.py
+backend/schemas/proposal_schema.py
+backend/services/jd_parser.py
+backend/services/proposal_validator.py
+backend/services/resume_parser.py
+backend/services/rewrite_formatter.py
+backend/services/rewrite_orchestrator.py
+backend/services/rewrite_orchestrator_v2.py
+backend/services/rewrite_orchestrator_v3.py
+backend/services/rewrite_orchestrator_v4.py
+backend/services/rewrite_orchestrator_v5.py
+app.py
+Tests
+
+Confirmed current test state:
+
+tests/backend/test_rewrite_api.py
+tests/backend/test_resume_api.py
+tests/backend/test_jobs_api.py
+
+All 40 tests pass when run with PYTHONPATH=.
+
+Empty directories
+backend/models/
+backend/utils/
+Important framing
+
+resume-saas progress must be treated as validation-harness progress, not as permission to expand product-building scope.
+
+Current Proven Constraints
+only code_migration is executable
+ECS is not the runtime controller yet
+Guardian is not an execution gate yet
+Context transfer is manual
+state files must be kept aligned with repo reality
+no new workflow type is executable unless full execution infrastructure exists
+Current Known Drift / Risk Areas
+queue policy enforcement is partially duplicated and partially hardcoded
+Guardian stale-state checking has incomplete mapping for current step language
+state documents had drifted behind repo reality prior to reconciliation
+multiple orchestrator versions remain in the repo at the same time
+tests currently require PYTHONPATH=. to collect and run successfully
+Immediate System Objective
+
+Bring official state files into alignment with verified repo reality, then continue system-building from a clean checkpoint.
+
+Notes
+workflow_spec_version is a string, not an integer.
+app_build, automation_build, and ui_conversion remain policy-defined only and are not executable.
+Migration runtime is real and operational. ECS and Guardian are real but only partially connected to enforcement/runtime flow.

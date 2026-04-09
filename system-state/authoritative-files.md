@@ -87,3 +87,4 @@ These files are the system's working memory for human operators and future agent
 4. **Execution artifacts are historical records**, not inputs. Do not re-execute from a previous queue-state. Run a fresh preflight.
 5. **Policy-only workflow types** (`app_build`, `automation_build`, `ui_conversion`) must never appear in `config/migration-execution-policy.json` until their infrastructure is built.
 6. **State surface files** (`system-state/*.md`) are summaries derived from authoritative sources. When they conflict with a primary source, trust the primary source and update the state surface.
+7. **When repository reality is found to contradict a state-surface file, create or approve a reconciliation artifact before updating the state surface.** Do not update state files from raw observation alone.
