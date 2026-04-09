@@ -2,26 +2,17 @@
 
 ## Purpose
 
-Operational snapshot of ai-factory based on reconciled repository reality.
+Operational snapshot of ai-factory based on actual system behavior.
 
-This file reflects what is actually implemented and currently true.
+This file reflects what is implemented, enforced, and currently true. It is used by ECS and Guardian as an authoritative input.
 
 ---
 
 ## Current Phase
 
-Core System Stabilization — Enforcement Gap
+Controlled Execution — Control Loop Enforced, Post-Execution Outcome Control Pending
 
-The system is past early migration proof and now needs control-layer alignment.
-
-Current reality:
-
-- migration pipeline is real and proven
-- state surface has been reconciled to repo reality
-- ECS exists but does not control runtime execution
-- Guardian exists but does not gate runtime execution
-- Context Engine is not implemented
-- resume-saas is the active migration validation harness
+The system has a functioning, enforced control loop. Guardian is a required blocking gate before any migration execution. ECS resolution is required and validated by Guardian. The operator entrypoint coordinates the full control sequence. Objective transitions are controlled.
 
 ---
 
@@ -48,36 +39,100 @@ Only code_migration is executable.
 - class: A only
 - reason codes: A_EXACT_PORT, A_SCHEMA_PORT
 
-Execution path:
+All five fields are read from `config/migration-execution-policy.json`. That file is the single source of truth for execution permission in both queue and batch paths.
 
-run-migration-start → run-migration-preflight → approve-batch-report → run-migration-cycle
+Migration execution is allowed only when the current objective is migration-aligned. When the objective is system-building, Guardian blocks execution before any work begins.
+
+---
+
+## Execution Flow
+
+Official execution path through the operator entrypoint:
+
+```
+ai-factory-run --mode execute-allowed-step --queue-state <path>
+  → reads state surface
+  → runs ECS resolver
+  → validates ECS output (non-empty, unambiguous)
+  → runs Guardian (all checks must pass)
+  → evaluates scope (resolved action must be executable)
+  → invokes run-migration-queue
+    → per-job policy gate (reads from policy file)
+    → run-migration-execute (Guardian gate inside execution)
+```
+
+No step is skippable. No bypass flags exist on the entrypoint or transition command.
 
 ---
 
 ## Control Layer Status
 
 ### ECS
-- implemented
-- reads state files
-- not used by runtime execution
 
-Status: PARTIAL
+- implemented: resolve_next_action.py, check_action_allowed.py, read_state.py
+- resolves next action from state surface
+- ECS consistency and clear-action are validated by Guardian before execution
+- not invoked directly by migration runtime scripts — runs through control loop
+
+Status: IMPLEMENTED — connected to control loop via Guardian
+
+---
 
 ### Guardian
-- implemented checks exist
-- runs manually
-- not required before execution
 
-Status: PARTIAL
+- implemented: run_guardian.py + six check scripts
+- runs as a required blocking gate inside migration_execute.py (auto-openai mode)
+- runs as part of ai-factory-run control loop before any execution
+- runs pre- and post-write inside ai-factory-transition
+
+Checks enforced:
+
+| Check | Enforces |
+|---|---|
+| check_stale_state | next steps are not already completed |
+| check_ecs_consistency | ECS surfaces agree with state; ECS returns a clear action |
+| check_forbidden_transition | no invalid phase transitions in progress |
+| check_missing_artifact | artifacts required by claimed-complete states exist |
+| check_policy_integrity | policy file exists, is valid JSON, has all required keys |
+| check_objective_alignment | objective has actionable next step; execution is aligned with objective mode |
+
+Status: ENFORCED — blocking gate on all execution paths
+
+---
+
+### Operator Entrypoint
+
+- ai_factory_run.py / ai-factory-run: official front door for execution
+- inspect mode: reads state, runs ECS, runs Guardian, reports outcome — no execution
+- execute-allowed-step mode: same as inspect, then invokes run-migration-queue if all gates pass
+
+Status: IMPLEMENTED AND ENFORCED
+
+---
+
+### Objective Transition Control
+
+- ai_factory_transition.py / ai-factory-transition: controls phase transitions
+- validates preconditions, atomically updates current-objective.md, re-runs Guardian and ECS after write
+- writes transition record to transition-records/
+- direct edits to current-objective.md outside this command are not part of the controlled flow
+
+Status: IMPLEMENTED AND ENFORCED
+
+---
 
 ### Context System
-- no implementation
-- relies on state files only
 
-Status: MISSING
+- no Context Engine implementation exists
+- relies on manual state files and operator discipline
+
+Status: NOT IMPLEMENTED
+
+---
 
 ### Knowledge OS
-- not present in repo
+
+- no implementation present
 
 Status: NOT IMPLEMENTED
 
@@ -86,50 +141,54 @@ Status: NOT IMPLEMENTED
 ## Migration System
 
 - fully operational
-- queue + policy gating works
-- artifacts and manifests produced
+- queue + policy gating works (all five fields from policy file)
+- Guardian gate active inside execution path
+- artifacts and manifests produced per run
 
 Status: COMPLETE (current scope)
 
 ---
 
-## resume-saas Status
+## Post-Execution State Update Control
 
-Implemented:
-- API handlers and routes exist
-- app.py wired
-- orchestrator versions present
+- canonical design exists: docs/post-execution-state-update-control.md
+- ai-factory-record-outcome command: NOT YET IMPLEMENTED
+- execution artifacts are written (queue-runs, manifests) but state surface is not automatically updated after execution
+- operator must manually reconcile state after execution until the command is implemented
 
-Tests:
-- 40 passing with PYTHONPATH=.
-
-Empty:
-- backend/models/
-- backend/utils/
+Status: DESIGN COMPLETE — COMMAND NOT IMPLEMENTED
 
 ---
 
-## Known Risks
+## resume-saas Status
 
-- ECS not controlling execution
-- Guardian not enforcing execution
-- context transfer manual
-- queue policy partially hardcoded
-- stale-state coverage incomplete
-- orchestrator duplication
-- test env dependency
+- API handlers and routes exist
+- app.py wired
+- 40 tests passing with PYTHONPATH=.
+- multiple orchestrator versions present in repo
+- backend/models/ and backend/utils/ are empty
+- resume-saas serves as the migration validation harness, not the primary objective
+
+---
+
+## Known Gaps
+
+- post-execution outcome acknowledgment has no command yet
+- Guardian stale-state check has incomplete artifact mapping for some current step language
+- context transfer depends on manual operator discipline
 
 ---
 
 ## Immediate Next Step
 
-Make Guardian a required pre-execution gate.
+Implement ai-factory-record-outcome to close the post-execution state update gap.
 
 ---
 
 ## Constraints
 
 - do not expand workflows
-- do not treat ECS as controlling yet
-- do not treat Guardian as enforced yet
+- do not claim ECS is autonomous
+- do not claim Guardian enforcement exists where it does not
 - do not expand product scope
+- do not treat uncommitted or unverified state as ground truth
