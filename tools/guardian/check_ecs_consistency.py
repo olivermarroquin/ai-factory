@@ -257,6 +257,38 @@ def run_check(objective_path):
         if not passed:
             failures.append(comp["name"])
 
+    # --- ECS clear-action enforcement ---
+    # Verify the resolver returned a single, non-empty, unambiguous action.
+    # The resolver already exits non-zero for structural ambiguity (multiple unordered
+    # candidates), which _run_ecs_tool catches above. This check covers the remaining
+    # gap: an empty decision string or a decision containing ambiguity signals.
+    AMBIGUOUS_SIGNALS = ["ambiguous", "unclear", "unknown", "no clear", "none"]
+    clear_action_reason = None
+
+    if not resolver_decision or not resolver_decision.strip():
+        clear_action_reason = "resolver decision is empty"
+    else:
+        decision_lower = resolver_decision.lower()
+        for signal in AMBIGUOUS_SIGNALS:
+            if signal in decision_lower:
+                clear_action_reason = f"resolver decision contains ambiguity signal: '{signal}'"
+                break
+
+    if clear_action_reason is not None:
+        checks.append({
+            "name":     "ecs_clear_action",
+            "status":   "FAIL",
+            "reason":   clear_action_reason,
+            "decision": resolver_decision,
+        })
+        failures.append("ecs_no_clear_action")
+    else:
+        checks.append({
+            "name":     "ecs_clear_action",
+            "status":   "PASS",
+            "decision": resolver_decision,
+        })
+
     return {
         "status":     "FAIL" if failures else "PASS",
         "check_name": "ecs_consistency_check",

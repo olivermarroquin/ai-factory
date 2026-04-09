@@ -28,6 +28,8 @@ CHECKS = [
     ("tools/guardian/check_ecs_consistency.py",      "check_ecs_consistency.py"),
     ("tools/guardian/check_forbidden_transition.py", "check_forbidden_transition.py"),
     ("tools/guardian/check_missing_artifact.py",     "check_missing_artifact.py"),
+    ("tools/guardian/check_policy_integrity.py",     "check_policy_integrity.py"),
+    ("tools/guardian/check_objective_alignment.py",  "check_objective_alignment.py"),
 ]
 
 # ---------------------------------------------------------------------------

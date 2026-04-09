@@ -36,6 +36,21 @@ if ! jq empty "$POLICY_FILE" 2>/dev/null; then
     exit 1
 fi
 
+allowed_workflow_types=()
+while IFS= read -r entry; do
+    allowed_workflow_types+=("$entry")
+done < <(jq -r '.batch_execution.allowed_workflow_types[]' "$POLICY_FILE")
+
+allowed_workflow_spec_versions=()
+while IFS= read -r entry; do
+    allowed_workflow_spec_versions+=("$entry")
+done < <(jq -r '.batch_execution.allowed_workflow_spec_versions[]' "$POLICY_FILE")
+
+allowed_job_types=()
+while IFS= read -r entry; do
+    allowed_job_types+=("$entry")
+done < <(jq -r '.batch_execution.allowed_job_types[]' "$POLICY_FILE")
+
 allowed_classes=()
 while IFS= read -r entry; do
     allowed_classes+=("$entry")
@@ -154,13 +169,32 @@ while read -r job; do
     job_approval_timestamp=$(echo "$job" | jq -r '.approval_timestamp')
 
     policy_error=""
-    if [[ "$job_workflow_type" != "code_migration" ]]; then
-        policy_error="workflow_type is '$job_workflow_type' (expected: code_migration)"
-    elif [[ "$job_workflow_spec_version" != "1" ]]; then
-        policy_error="workflow_spec_version is '$job_workflow_spec_version' (expected: 1)"
-    elif [[ "$job_job_type" != "migration" ]]; then
-        policy_error="job_type is '$job_job_type' (expected: migration)"
-    else
+    workflow_type_allowed=0
+    for allowed in "${allowed_workflow_types[@]}"; do
+        if [[ "$job_workflow_type" == "$allowed" ]]; then workflow_type_allowed=1; break; fi
+    done
+    if [[ "$workflow_type_allowed" -eq 0 ]]; then
+        policy_error="workflow_type is '$job_workflow_type' (not in allowed_workflow_types)"
+    fi
+    if [[ -z "$policy_error" ]]; then
+        workflow_spec_version_allowed=0
+        for allowed in "${allowed_workflow_spec_versions[@]}"; do
+            if [[ "$job_workflow_spec_version" == "$allowed" ]]; then workflow_spec_version_allowed=1; break; fi
+        done
+        if [[ "$workflow_spec_version_allowed" -eq 0 ]]; then
+            policy_error="workflow_spec_version is '$job_workflow_spec_version' (not in allowed_workflow_spec_versions)"
+        fi
+    fi
+    if [[ -z "$policy_error" ]]; then
+        job_type_allowed=0
+        for allowed in "${allowed_job_types[@]}"; do
+            if [[ "$job_job_type" == "$allowed" ]]; then job_type_allowed=1; break; fi
+        done
+        if [[ "$job_type_allowed" -eq 0 ]]; then
+            policy_error="job_type is '$job_job_type' (not in allowed_job_types)"
+        fi
+    fi
+    if [[ -z "$policy_error" ]]; then
         class_allowed=0
         for allowed in "${allowed_classes[@]}"; do
             if [[ "$job_actual_class" == "$allowed" ]]; then class_allowed=1; break; fi

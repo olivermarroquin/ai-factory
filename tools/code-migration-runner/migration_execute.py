@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import re
+import subprocess
 import sys
 
 from model_backend import run_model
@@ -646,7 +647,102 @@ def run_auto_stub(paths: dict[str, Path], args: argparse.Namespace) -> int:
     return 0
 
 
+def run_guardian_gate(args: argparse.Namespace) -> int:
+    """
+    Run the Guardian pre-execution gate before any model call or apply step.
+    Returns 0 on PASS. Returns 1 and prints to stderr on any block or error.
+    Only called from run_auto_openai.
+    """
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    guardian_script = AI_FACTORY / "tools" / "guardian" / "run_guardian.py"
+
+    try:
+        proc = subprocess.run(
+            [sys.executable, str(guardian_script)],
+            capture_output=True,
+            text=True,
+        )
+    except OSError as exc:
+        print(f"[GUARDIAN ERROR] {ts}", file=sys.stderr)
+        print(f"venture: {args.venture}", file=sys.stderr)
+        print(f"step: {args.step}", file=sys.stderr)
+        print(f"error: subprocess-failed", file=sys.stderr)
+        print(f"detail: {exc}", file=sys.stderr)
+        return 1
+
+    if proc.returncode != 0:
+        print(f"[GUARDIAN ERROR] {ts}", file=sys.stderr)
+        print(f"venture: {args.venture}", file=sys.stderr)
+        print(f"step: {args.step}", file=sys.stderr)
+        print(f"error: subprocess-failed", file=sys.stderr)
+        print(f"exit code: {proc.returncode}", file=sys.stderr)
+        if proc.stderr.strip():
+            print(f"guardian stderr: {proc.stderr.strip()[:300]}", file=sys.stderr)
+        return 1
+
+    try:
+        guardian_result = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        print(f"[GUARDIAN ERROR] {ts}", file=sys.stderr)
+        print(f"venture: {args.venture}", file=sys.stderr)
+        print(f"step: {args.step}", file=sys.stderr)
+        print(f"error: invalid-json", file=sys.stderr)
+        return 1
+
+    if "status" not in guardian_result:
+        print(f"[GUARDIAN ERROR] {ts}", file=sys.stderr)
+        print(f"venture: {args.venture}", file=sys.stderr)
+        print(f"step: {args.step}", file=sys.stderr)
+        print(f"error: missing-field", file=sys.stderr)
+        return 1
+
+    status = guardian_result["status"]
+
+    if status == "PASS":
+        return 0
+
+    if status != "FAIL":
+        print(f"[GUARDIAN ERROR] {ts}", file=sys.stderr)
+        print(f"venture: {args.venture}", file=sys.stderr)
+        print(f"step: {args.step}", file=sys.stderr)
+        print(f"error: missing-field", file=sys.stderr)
+        return 1
+
+    # status == "FAIL"
+    failures = guardian_result.get("failures", [])
+    checks = guardian_result.get("checks", [])
+
+    print(f"[GUARDIAN BLOCK] {ts}", file=sys.stderr)
+    print(f"venture: {args.venture}", file=sys.stderr)
+    print(f"step: {args.step}", file=sys.stderr)
+    print(f"guardian status: FAIL", file=sys.stderr)
+    print(f"failed checks: {', '.join(str(f) for f in failures)}", file=sys.stderr)
+
+    for check in checks:
+        if isinstance(check, dict) and check.get("status") == "FAIL":
+            print("---", file=sys.stderr)
+            print(f"check: {check.get('name', 'unknown')}", file=sys.stderr)
+            print(f"status: FAIL", file=sys.stderr)
+            result_detail = check.get("result", {})
+            if isinstance(result_detail, dict):
+                sub_failures = result_detail.get("failures", [])
+                if sub_failures:
+                    print(f"detail: {', '.join(str(f) for f in sub_failures)}", file=sys.stderr)
+
+    print("---", file=sys.stderr)
+    print(
+        f"Execution halted. Guardian check(s) failed: {', '.join(str(f) for f in failures)}",
+        file=sys.stderr,
+    )
+    return 1
+
+
 def run_auto_openai(paths: dict[str, Path], args: argparse.Namespace) -> int:
+    # --- Guardian pre-execution gate ---
+    args.failed_stage = "guardian"
+    if run_guardian_gate(args) != 0:
+        return 1
+
     # --- Analyzer ---
     args.failed_stage = "analyzer"
     analyzer_prompt = read_text(paths["analyzer_prompt"])
