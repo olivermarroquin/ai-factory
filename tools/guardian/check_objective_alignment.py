@@ -158,8 +158,17 @@ def run_check(objective_path):
             }
 
     # 5. Objective must not be system-building while migration execution is attempted
+    # Match on whole words only — substring matching would incorrectly match
+    # "controlled" for "control", "controller" for "control", etc.
+    first_item_words = set(first_item_lower.split())
     for keyword in SYSTEM_BUILDING_KEYWORDS:
-        if keyword in first_item_lower:
+        keyword_words = keyword.split()
+        if len(keyword_words) == 1:
+            matched = keyword_words[0] in first_item_words
+        else:
+            # Multi-word phrase: require all words to appear as a contiguous sequence
+            matched = keyword_words[0] in first_item_lower and keyword in first_item_lower
+        if matched:
             return {
                 "status":     "FAIL",
                 "check_name": "objective_alignment",

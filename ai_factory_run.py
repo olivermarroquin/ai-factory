@@ -225,14 +225,26 @@ def evaluate_scope(decision):
     """
     Returns True if the resolved action is executable in the current scope.
     Returns False if the action is system-building or otherwise out of scope.
+
+    System-building keywords are matched on whole words only to prevent
+    substring false-positives (e.g. "controlled" must not match "control").
+    Executable keywords use substring matching — they are specific enough phrases
+    that false-positives are not a concern.
     """
     decision_lower = decision.lower()
+    decision_words = set(decision_lower.split())
 
-    # System-building takes precedence — block even if migration keyword also present.
+    # System-building check — whole-word match only.
     for keyword in SYSTEM_BUILDING_KEYWORDS:
-        if keyword in decision_lower:
+        keyword_words = keyword.split()
+        if len(keyword_words) == 1:
+            matched = keyword_words[0] in decision_words
+        else:
+            matched = keyword in decision_lower
+        if matched:
             return False
 
+    # Executable scope check — substring match is safe here (phrases are specific).
     for keyword in EXECUTABLE_SCOPE_KEYWORDS:
         if keyword in decision_lower:
             return True
