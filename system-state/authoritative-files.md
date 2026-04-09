@@ -25,14 +25,16 @@ These files define what the system is and how it must behave. They are the highe
 
 These scripts are the official operator interface to the system. They are authoritative for how execution and transitions must be initiated.
 
-| Script                        | What it governs                                                                                   |
-| ----------------------------- | ------------------------------------------------------------------------------------------------- |
-| `ai_factory_run.py`           | Official execution entrypoint — coordinates state → ECS → Guardian → scope → execution           |
-| `ai-factory-run`              | Bash wrapper for `ai_factory_run.py`                                                              |
-| `ai_factory_transition.py`    | Official objective transition command — controls phase changes with atomic write and validation   |
-| `ai-factory-transition`       | Bash wrapper for `ai_factory_transition.py`                                                       |
+| Script                           | What it governs                                                                                   |
+| -------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `ai_factory_run.py`              | Official execution entrypoint — coordinates state → ECS → Guardian → scope → execution           |
+| `ai-factory-run`                 | Bash wrapper for `ai_factory_run.py`                                                              |
+| `ai_factory_transition.py`       | Official objective transition command — controls phase changes with atomic write and validation   |
+| `ai-factory-transition`          | Bash wrapper for `ai_factory_transition.py`                                                       |
+| `ai_factory_record_outcome.py`   | Official post-execution outcome recording command — validates outcome and updates state surface   |
+| `ai-factory-record-outcome`      | Bash wrapper for `ai_factory_record_outcome.py`                                                   |
 
-**Rule:** Execution must be initiated through `ai-factory-run`. Objective mode must be changed through `ai-factory-transition`. Direct invocation of lower-level scripts outside these entrypoints bypasses the enforced control loop and is not part of the controlled flow.
+**Rule:** Execution must be initiated through `ai-factory-run`. Objective mode must be changed through `ai-factory-transition`. Post-execution outcomes must be recorded through `ai-factory-record-outcome`. Direct invocation of lower-level scripts outside these entrypoints bypasses the enforced control loop and is not part of the controlled flow.
 
 ---
 
@@ -86,20 +88,9 @@ These files are produced during execution. They are authoritative records of wha
 | Per-step run manifest | `ventures/<venture>/migration-logs/<date>_step-<NN>_run-<ts>.json` | Per-step artifact paths, stage results, success/failure |
 | Stage artifacts       | `ventures/<venture>/migration-logs/<date>_step-<NN>_<stage>.md`    | Output of each pipeline stage for a given run           |
 | Transition record     | `transition-records/<ts>_transition.json`                          | Objective transition: from/to mode, reason, Guardian status at time of transition |
+| Outcome record        | `outcome-records/<ts>_outcome.json`                                | Post-execution outcome: queue-state, job statuses, declared outcome, Guardian status |
 
-**Rule:** Execution artifacts are write-once records. Re-running requires new artifacts from a new preflight cycle. Transition records are write-once per transition.
-
----
-
-## Defined-Only Control Artifacts (Not Yet Implemented)
-
-These components are canonically designed but do not yet have an implemented command.
-
-| Document                                           | What it defines                                                                       | Status           |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------- | ---------------- |
-| `docs/post-execution-state-update-control.md`      | Post-execution outcome acknowledgment command and state surface update discipline     | Design only      |
-
-**Rule:** Do not treat designed-but-unimplemented components as active. Post-execution state surface updates remain manual until `ai-factory-record-outcome` is implemented.
+**Rule:** Execution artifacts are write-once records. Re-running requires new artifacts from a new preflight cycle. Transition records are write-once per transition. Outcome records are write-once per queue-state.
 
 ---
 
@@ -142,3 +133,4 @@ These files are the system's working memory for human operators and agents. They
 8. **Execution must be initiated through `ai-factory-run`.** Direct invocation of lower-level migration scripts outside the entrypoint bypasses the enforced control loop.
 9. **Objective mode changes must go through `ai-factory-transition`.** Do not edit `current-objective.md` directly as a substitute for a controlled transition.
 10. **Guardian must pass before execution proceeds.** A Guardian FAIL is a hard block. There is no force flag.
+11. **Post-execution outcomes must be recorded through `ai-factory-record-outcome`.** Do not manually edit `current-system-state.md` as a substitute for a controlled outcome record. Each queue-state may have at most one outcome record.

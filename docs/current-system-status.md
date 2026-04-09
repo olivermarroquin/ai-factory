@@ -10,20 +10,20 @@ This file is an operational status document. It must reflect actual implemented 
 
 ## Current System Phase
 
-**Phase: Controlled Execution — Control Loop Enforced, Post-Execution Outcome Control Pending**
+**Phase: Controlled Execution — Full Lifecycle Control Implemented**
 
-The system has a functioning, enforced control loop. Guardian is a required blocking gate. ECS is connected to Guardian's consistency check. The operator entrypoint coordinates the full control loop. Objective transitions are controlled.
+The system has a functioning, enforced control loop covering the entire execution lifecycle. Guardian is a required blocking gate at every write point. ECS is connected to Guardian's consistency check. The operator entrypoint, transition command, and outcome recording command are all implemented.
 
 Current reality:
 
 - migration pipeline is real and proven
 - ECS reads state and resolves next action — used by Guardian consistency check
-- Guardian is now a required blocking gate in migration execution
+- Guardian is a required blocking gate in migration execution, objective transitions, and outcome recording
 - operator entrypoint (`ai-factory-run`) coordinates state → ECS → Guardian → execution
 - objective transitions are controlled via `ai-factory-transition`
+- post-execution outcome recording is controlled via `ai-factory-record-outcome`
 - the system can intentionally block migration execution when the objective is system-building
 - context transfer still depends on manual state files and operator discipline
-- post-execution outcome acknowledgment and state update is designed but not yet implemented as a command
 - the system is controlled, not autonomous
 
 ---
@@ -72,6 +72,22 @@ Status: **implemented and enforced**
 - atomically updates `system-state/current-objective.md`
 - re-runs full Guardian and ECS after the write
 - writes a transition record to `transition-records/`
+
+Status: **implemented and enforced**
+
+### Post-Execution Outcome Recording — `ai-factory-record-outcome`
+
+```
+./ai-factory-record-outcome --queue-state <path> --outcome succeeded [--notes "<text>"]
+./ai-factory-record-outcome --queue-state <path> --outcome failed [--notes "<text>"]
+```
+
+- validates declared outcome against actual queue-state job statuses
+- checks for duplicate outcome records per queue-state (write-once per batch)
+- runs Guardian pre- and post-write
+- atomically updates `system-state/current-system-state.md` with execution cycle block
+- writes outcome record to `outcome-records/`
+- prints advisory for next step (another run or transition to system-building)
 
 Status: **implemented and enforced**
 
@@ -135,6 +151,7 @@ Current status:
 - Guardian runs as a required blocking gate inside `migration_execute.py` (auto-openai mode)
 - Guardian runs as part of the `ai-factory-run` control loop before any execution is allowed
 - Guardian runs pre- and post-write in `ai-factory-transition`
+- Guardian runs pre- and post-write in `ai-factory-record-outcome`
 - a FAIL on any check halts execution with no bypass
 
 Guardian validates:
@@ -195,27 +212,22 @@ Status: **operational — current scope complete**
 
 ## Post-Execution State Update Control
 
-A canonical design exists for controlled post-execution outcome acknowledgment:
+`ai-factory-record-outcome` is implemented. Canonical design reference: `docs/post-execution-state-update-control.md`
 
-```
-docs/post-execution-state-update-control.md
-```
+Implemented behavior:
+- validates declared outcome against actual job statuses (all jobs succeeded / at least one failed)
+- duplicate-detection guard — write-once per queue-state
+- Guardian pre- and post-write gate
+- atomically updates `system-state/current-system-state.md` with execution cycle block
+- writes outcome record to `outcome-records/`
+- prints advisory for transition decision
 
-This design covers:
-- outcome types (succeeded, partially succeeded, failed before work, failed after work)
-- operator-driven acknowledgment command (`ai-factory-record-outcome`)
-- atomic update of `current-system-state.md`
-- duplicate-detection guard
-- outcome record in `outcome-records/`
-- relationship to `ai-factory-transition`
-
-Status: **design complete, command not yet implemented**
+Status: **implemented and enforced**
 
 ---
 
 ## Current Known Limitations
 
-- post-execution outcome acknowledgment has no command yet — operator must update state manually after execution
 - Guardian stale-state check has incomplete artifact mapping for some current step language
 - multiple orchestrator versions remain in the resume-saas repo simultaneously
 - tests in resume-saas require `PYTHONPATH=.` to run
@@ -225,7 +237,7 @@ Status: **design complete, command not yet implemented**
 
 ## Immediate Next System Objective
 
-Implement `ai-factory-record-outcome` to close the post-execution state update gap.
+Extend Guardian stale-state coverage or continue controlled migration execution cycles.
 
 ---
 

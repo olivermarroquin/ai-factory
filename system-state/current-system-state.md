@@ -10,9 +10,9 @@ This file reflects what is implemented, enforced, and currently true. It is used
 
 ## Current Phase
 
-Controlled Execution — Control Loop Enforced, Post-Execution Outcome Control Pending
+Controlled Execution — Full Lifecycle Control Implemented
 
-The system has a functioning, enforced control loop. Guardian is a required blocking gate before any migration execution. ECS resolution is required and validated by Guardian. The operator entrypoint coordinates the full control sequence. Objective transitions are controlled.
+The system has a functioning, enforced control loop covering the entire execution lifecycle: transition → execute → record outcome → transition. Guardian is a required blocking gate before any migration execution and before any outcome write. ECS resolution is required and validated by Guardian. The operator entrypoint coordinates the full control sequence. Objective transitions and post-execution outcome recording are both controlled.
 
 ---
 
@@ -84,6 +84,7 @@ Status: IMPLEMENTED — connected to control loop via Guardian
 - runs as a required blocking gate inside migration_execute.py (auto-openai mode)
 - runs as part of ai-factory-run control loop before any execution
 - runs pre- and post-write inside ai-factory-transition
+- runs pre- and post-write inside ai-factory-record-outcome
 
 Checks enforced:
 
@@ -151,12 +152,15 @@ Status: COMPLETE (current scope)
 
 ## Post-Execution State Update Control
 
-- canonical design exists: docs/post-execution-state-update-control.md
-- ai-factory-record-outcome command: NOT YET IMPLEMENTED
-- execution artifacts are written (queue-runs, manifests) but state surface is not automatically updated after execution
-- operator must manually reconcile state after execution until the command is implemented
+- ai_factory_record_outcome.py / ai-factory-record-outcome: IMPLEMENTED
+- validates declared outcome against actual queue-state job statuses
+- checks for duplicate outcome records per queue-state
+- runs Guardian pre- and post-write
+- atomically updates current-system-state.md with execution cycle status block
+- writes outcome record to outcome-records/
+- prints advisory for next transition
 
-Status: DESIGN COMPLETE — COMMAND NOT IMPLEMENTED
+Status: IMPLEMENTED AND ENFORCED
 
 ---
 
@@ -173,15 +177,15 @@ Status: DESIGN COMPLETE — COMMAND NOT IMPLEMENTED
 
 ## Known Gaps
 
-- post-execution outcome acknowledgment has no command yet
 - Guardian stale-state check has incomplete artifact mapping for some current step language
 - context transfer depends on manual operator discipline
+- transition-records/ directory is not yet populated (no ai-factory-transition run has been committed)
 
 ---
 
 ## Immediate Next Step
 
-Implement ai-factory-record-outcome to close the post-execution state update gap.
+Extend Guardian stale-state coverage to current step language, or continue migration execution and outcome recording cycles.
 
 ---
 
@@ -192,3 +196,17 @@ Implement ai-factory-record-outcome to close the post-execution state update gap
 - do not claim Guardian enforcement exists where it does not
 - do not expand product scope
 - do not treat uncommitted or unverified state as ground truth
+
+<!-- EXECUTION_CYCLE_STATUS_START -->
+## Latest Execution Cycle Status
+
+- queue_state: batch-reports/20260409T154208Z_queue-state.json
+- queue_run_record: /Users/olivermarroquin/workspace/ai-factory/queue-runs/20260409T154918Z_queue-run.json
+- outcome: succeeded
+- batch_status: succeeded
+- recorded_at: 2026-04-09T16:18:11Z
+
+### Notes
+approved migration batch completed
+
+<!-- EXECUTION_CYCLE_STATUS_END -->

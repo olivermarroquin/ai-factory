@@ -2,31 +2,21 @@
 
 ## Current Objective
 
-Re-establish full system control by enforcing execution correctness, preventing drift, and aligning all execution with system state and policy.
+Execute approved migration work through the controlled execution path while maintaining Guardian enforcement, policy integrity, and state correctness.
 
 ---
 
 ## Why This Is The Current Objective
 
-Verified repo reality shows:
-
-- the migration system is real and operational
-- ECS exists but does not control runtime execution
-- Guardian exists but does not gate runtime execution
-- Context transfer is still manual
-- official state had drifted and required reconciliation
-
-Because of that, the system's bottleneck is no longer basic migration proof.
-
-The bottleneck is enforcement.
+The system is in migration-execution mode. Only approved migration work may proceed, and all execution must remain gated by Guardian, ECS, and policy controls.
 
 ---
 
 ## Immediate Next Steps
 
-1. Strengthen Guardian enforcement to fully prevent execution drift across all workflows
-2. Align ECS decisions with execution paths to eliminate ambiguity in next-step selection
-3. Ensure all execution is gated by validated system state, policy, and objective alignment
+1. Execute approved migration work through the controlled queue path
+2. Preserve Guardian enforcement and policy integrity during execution
+3. Return to system-building mode if control gaps, drift, or blocking issues are discovered
 
 ---
 
@@ -34,18 +24,18 @@ The bottleneck is enforcement.
 
 This objective is complete when:
 
-1. execution cannot proceed without a Guardian pass
-2. invalid or stale system state can block execution before runtime begins
-3. the control layer is more than documentation and manual discipline
+1. approved migration work for the selected queue-state has been executed or intentionally halted
+2. Guardian and policy controls remain intact during execution
+3. any newly discovered control gaps are brought back into system-building mode explicitly
 
 ---
 
 ## Current Constraints
 
-- do not execute migration work while system enforcement is incomplete
+- do not bypass Guardian, ECS, or policy enforcement
+- do not execute unapproved or out-of-scope migration work
 - do not expand workflow types beyond code_migration
-- do not bypass Guardian or ECS checks
-- do not introduce automation before control is fully enforced
+- do not silently change objective direction during execution
 
 ---
 
@@ -55,11 +45,17 @@ This objective is complete when:
 - automation_build execution
 - ui_conversion execution
 - multi-agent orchestration
-- broad cleanup of product repo structure
-- non-essential feature work in resume-saas
+- autonomous objective switching
+- uncontrolled automation
+
+---
+
+## Transition Basis
+
+ready to run approved migration batch
 
 ---
 
 ## Approved Basis
 
-This objective is based on the approved reconciliation baseline and verified repo reality from the latest inspection.
+This objective was written by ai_factory_transition.py through an explicit operator transition.

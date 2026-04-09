@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-04-09T16:18:11Z",
+  "queue_state_path": "/Users/olivermarroquin/workspace/ai-factory/batch-reports/20260409T154208Z_queue-state.json",
+  "queue_run_record_path": "/Users/olivermarroquin/workspace/ai-factory/queue-runs/20260409T154918Z_queue-run.json",
+  "outcome": "succeeded",
+  "notes": "approved migration batch completed",
+  "batch_status": "succeeded",
+  "job_statuses": [
+    {
+      "venture": "resume-saas",
+      "step": 15,
+      "status": "succeeded"
+    }
+  ],
+  "guardian_status": "PASS"
+}

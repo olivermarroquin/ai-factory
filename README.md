@@ -30,17 +30,18 @@ AI Factory does not own ideas or code — it **executes and governs them**.
 
 ## Current System Phase
 
-**Core System Stabilization — Controlled Execution**
+**Controlled Execution — Full Lifecycle Control Implemented**
 
-The system has moved past early migration proof. It now has a functioning control loop with enforced gates at every layer. The current focus is maintaining and extending that control before expanding execution scope.
+The system has a complete, enforced execution lifecycle: transition into execution mode → run jobs through the controlled entrypoint → record the outcome → transition back if needed. Every step is gated.
 
 Current reality:
 
 - migration pipeline is real and proven
 - ECS reads state and resolves next action
-- Guardian validates state coherence, policy integrity, objective alignment, and ECS clarity before execution
+- Guardian validates at every write point: execution, transition, and outcome recording
 - operator entrypoint (`ai-factory-run`) coordinates the full control loop
 - objective transitions are controlled (`ai-factory-transition`)
+- post-execution outcome recording is controlled (`ai-factory-record-outcome`)
 - the system can intentionally block migration execution when the objective is system-building
 - the system is controlled, but not autonomous
 
@@ -161,6 +162,23 @@ Objective transitions are the only authorized mechanism for changing the objecti
 
 ---
 
+### Post-Execution Outcome Recording
+
+```
+./ai-factory-record-outcome --queue-state <path> --outcome succeeded [--notes "<text>"]
+./ai-factory-record-outcome --queue-state <path> --outcome failed [--notes "<text>"]
+```
+
+`ai-factory-record-outcome` closes the execution lifecycle by validating and recording what happened after a queue run.
+
+- validates declared outcome against actual queue-state job statuses
+- duplicate-detection guard — each queue-state may only have one outcome record
+- runs Guardian pre- and post-write
+- atomically updates `system-state/current-system-state.md`
+- writes outcome record to `outcome-records/`
+
+---
+
 ### Migration Pipeline Commands
 
 These are the lower-level execution commands. Under normal operation, they are invoked through `ai-factory-run`, not directly.
@@ -233,6 +251,7 @@ These may not appear in the policy file until their infrastructure is built.
 | Batch reports | `batch-reports/` |
 | Queue run records | `queue-runs/` |
 | Transition records | `transition-records/` |
+| Outcome records | `outcome-records/` |
 
 Execution artifacts are write-once records. They are never modified after creation.
 
@@ -259,7 +278,7 @@ The following remain intentionally operator-driven in the current phase:
 - choosing when to run execution (operator runs `ai-factory-run`)
 - approving batch reports (`approve-batch-report` requires explicit operator action)
 - transitioning between system-building and migration-execution modes (`ai-factory-transition`)
-- acknowledging execution outcomes and updating state surface post-execution
+- recording execution outcomes (`ai-factory-record-outcome` — operator initiates, command validates and writes)
 - deciding whether a failure warrants a transition back to system-building
 
 The system is controlled. It is not autonomous.
