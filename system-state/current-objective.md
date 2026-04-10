@@ -52,7 +52,7 @@ This objective is complete when:
 
 ## Transition Basis
 
-ready to run approved migration batch
+manifest_test
 
 ---
 

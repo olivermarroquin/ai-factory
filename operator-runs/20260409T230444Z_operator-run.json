@@ -1,0 +1,25 @@
+{
+  "record_version": "1",
+  "recorded_at": "2026-04-09T23:04:44Z",
+  "operator_run_id": "20260409T230444Z_operator-run",
+  "mode": "migration-execution",
+  "execution_phase": "recorded",
+  "objective_step_raw": "Execute approved migration work through the controlled queue path",
+  "ecs_decision_resolved": "Execute approved migration work through the controlled queue path",
+  "guardian_status": "PASS",
+  "snapshot_next_action_type": "transition",
+  "router_next_action_type": "none",
+  "router_allowed": false,
+  "router_reason": "missing_command",
+  "next_command": null,
+  "context_bundle_refs": [
+    "system-state/current-system-state.md",
+    "system-state/current-objective.md"
+  ],
+  "instruction_block": "ACTION: NONE\n\nREASON:\nmissing_command",
+  "human_action_status": "ran",
+  "human_action_notes": "ran the transition",
+  "result_artifact_refs": [
+    "transition-records/x.json"
+  ]
+}

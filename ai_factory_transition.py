@@ -229,8 +229,14 @@ def detect_current_mode():
         return "system-building"
 
     first_item_lower = first_item.lower()
+    first_item_words = set(first_item_lower.split())
     for keyword in SYSTEM_BUILDING_KEYWORDS:
-        if keyword in first_item_lower:
+        keyword_words = keyword.split()
+        if len(keyword_words) == 1:
+            matched = keyword_words[0] in first_item_words
+        else:
+            matched = keyword in first_item_lower
+        if matched:
             return "system-building"
 
     return "migration-execution"
@@ -483,7 +489,31 @@ def _cleanup_tmp():
 # Step 7A — Post-write Guardian validation
 # ---------------------------------------------------------------------------
 
+def _rollback_objective(previous_content):
+    """
+    Atomically restore current-objective.md to its previous content.
+    Uses the same temp-file + os.replace pattern as atomic_write_objective().
+    Does NOT call _die() — caller handles exit after rollback.
+    """
+    try:
+        with open(OBJECTIVE_TMP, "w", encoding="utf-8") as f:
+            f.write(previous_content)
+        os.replace(OBJECTIVE_TMP, OBJECTIVE_PATH)
+    except OSError as exc:
+        _print_block("TRANSITION ROLLBACK FAILED", [
+            "could not restore previous objective file",
+            f"detail: {exc}",
+            "MANUAL INTERVENTION REQUIRED: restore current-objective.md from transition record or git",
+        ])
+        sys.exit(1)
+
+
 def post_write_guardian():
+    """
+    Run Guardian after the objective write.
+    Returns (passed: bool, result_dict) — does NOT call _die().
+    Caller is responsible for rollback on failure.
+    """
     try:
         proc = subprocess.run(
             [sys.executable, GUARDIAN_ENGINE],
@@ -491,44 +521,32 @@ def post_write_guardian():
             text=True,
         )
     except OSError as exc:
-        _die("TRANSITION ERROR", [
-            "post-write Guardian check: engine could not be launched",
-            f"detail: {exc}",
-            "current-objective.md has been updated but transition is NOT confirmed",
-        ])
+        return False, {"status": "FAIL", "failures": [f"engine could not be launched: {exc}"]}
 
     if proc.returncode != 0:
         snippet = proc.stderr.strip()[:400]
-        _die("TRANSITION ERROR", [
-            f"post-write Guardian check: engine exited {proc.returncode}",
-            *([f"detail: {snippet}"] if snippet else []),
-            "current-objective.md has been updated but transition is NOT confirmed",
-        ])
+        return False, {"status": "FAIL", "failures": [f"engine exited {proc.returncode}: {snippet}"]}
 
     try:
         result = json.loads(proc.stdout)
     except json.JSONDecodeError:
-        _die("TRANSITION ERROR", [
-            "post-write Guardian check: invalid JSON returned",
-            "current-objective.md has been updated but transition is NOT confirmed",
-        ])
+        return False, {"status": "FAIL", "failures": ["invalid JSON returned by Guardian"]}
 
     if result.get("status") != "PASS":
-        failures = result.get("failures", [])
-        _die("TRANSITION ERROR", [
-            f"post-write Guardian check: status is {result.get('status')}",
-            f"failed checks: {', '.join(str(f) for f in failures)}",
-            "current-objective.md has been updated but transition is NOT confirmed",
-            "inspect and correct current-objective.md manually",
-        ])
+        return False, result
 
-    return result
+    return True, result
 
 # ---------------------------------------------------------------------------
 # Step 7B — Post-write ECS validation
 # ---------------------------------------------------------------------------
 
 def post_write_ecs():
+    """
+    Run ECS resolver after the objective write.
+    Returns (decision_str, error_str) — decision_str is None on failure.
+    Caller is responsible for rollback on failure.
+    """
     try:
         proc = subprocess.run(
             [sys.executable, ECS_RESOLVER],
@@ -536,36 +554,22 @@ def post_write_ecs():
             text=True,
         )
     except OSError as exc:
-        _die("TRANSITION ERROR", [
-            "post-write ECS check: resolver could not be launched",
-            f"detail: {exc}",
-            "current-objective.md has been updated but transition is NOT confirmed",
-        ])
+        return None, f"resolver could not be launched: {exc}"
 
     if proc.returncode != 0:
         snippet = proc.stderr.strip()[:400]
-        _die("TRANSITION ERROR", [
-            f"post-write ECS check: resolver exited {proc.returncode}",
-            *([f"detail: {snippet}"] if snippet else []),
-            "current-objective.md has been updated but transition is NOT confirmed",
-        ])
+        return None, f"resolver exited {proc.returncode}: {snippet}"
 
     try:
         data = json.loads(proc.stdout)
     except json.JSONDecodeError:
-        _die("TRANSITION ERROR", [
-            "post-write ECS check: invalid JSON returned",
-            "current-objective.md has been updated but transition is NOT confirmed",
-        ])
+        return None, "invalid JSON returned by ECS resolver"
 
     decision = data.get("decision")
     if not decision or not isinstance(decision, str) or not decision.strip():
-        _die("TRANSITION ERROR", [
-            "post-write ECS check: resolver returned empty or missing decision",
-            "current-objective.md has been updated but transition is NOT confirmed",
-        ])
+        return None, "resolver returned empty or missing decision"
 
-    return decision
+    return decision, None
 
 # ---------------------------------------------------------------------------
 # Step 7C — Write transition record
@@ -671,19 +675,49 @@ def main():
     # 5. Build target content
     content = build_objective_content(target_mode, reason)
 
+    # 5B. Read previous objective content for rollback
+    try:
+        with open(OBJECTIVE_PATH, encoding="utf-8") as f:
+            previous_objective_content = f.read()
+    except OSError as exc:
+        _die("TRANSITION ERROR", [f"cannot read current-objective.md for rollback snapshot: {exc}"])
+
     # 6. Atomic write
     _print("TRANSITION", "writing new objective ...")
     atomic_write_objective(content)
     _print("TRANSITION", f"current-objective.md updated atomically")
 
-    # 7A. Post-write Guardian
+    # 7A. Post-write Guardian — rollback on failure
     _print("TRANSITION", "post-write Guardian check ...")
-    post_guardian = post_write_guardian()
+    guardian_passed, post_guardian = post_write_guardian()
+
+    if not guardian_passed:
+        failures = post_guardian.get("failures", [])
+        _print_block("TRANSITION ROLLBACK", [
+            "post-write Guardian check failed",
+            f"failed checks: {', '.join(str(f) for f in failures)}",
+            "restoring previous objective state",
+        ])
+        _rollback_objective(previous_objective_content)
+        _print_block("TRANSITION ROLLBACK", ["state restored successfully"])
+        sys.exit(1)
+
     _print("TRANSITION", "post-write Guardian: PASS")
 
-    # 7B. Post-write ECS
+    # 7B. Post-write ECS — rollback on failure
     _print("TRANSITION", "post-write ECS check ...")
-    decision = post_write_ecs()
+    decision, ecs_error = post_write_ecs()
+
+    if decision is None:
+        _print_block("TRANSITION ROLLBACK", [
+            "post-write ECS check failed",
+            f"detail: {ecs_error}",
+            "restoring previous objective state",
+        ])
+        _rollback_objective(previous_objective_content)
+        _print_block("TRANSITION ROLLBACK", ["state restored successfully"])
+        sys.exit(1)
+
     _print("TRANSITION", f"post-write ECS: resolved action — {decision}")
 
     # 7C. Transition record

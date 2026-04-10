@@ -1,0 +1,8 @@
+{
+  "timestamp": "2026-04-10T03:19:01Z",
+  "from_mode": "system-building",
+  "to_mode": "migration-execution",
+  "reason": "manifest_test",
+  "guardian_status": "PASS",
+  "queue_state_path": "batch-reports/20260410T031810Z_queue-state.json"
+}
