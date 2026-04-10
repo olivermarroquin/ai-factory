@@ -1,0 +1,52 @@
+{
+  "snapshot": {
+    "mode": "migration-execution",
+    "execution_phase": "recorded",
+    "objective_step_raw": "Execute approved migration work through the controlled queue path",
+    "ecs_decision_resolved": "Execute approved migration work through the controlled queue path",
+    "ecs_placement": "NOT_EXPLICIT_IN_STATE",
+    "guardian_status": "PASS",
+    "guardian_blockers": [],
+    "active_queue_state": "batch-reports/20260410T030239Z_queue-state.json",
+    "active_queue_run": "/Users/olivermarroquin/workspace/ai-factory/queue-runs/20260410T030720Z_queue-run.json",
+    "active_outcome_record": "/Users/olivermarroquin/workspace/ai-factory/outcome-records/20260410T030825Z_outcome.json",
+    "active_transition_record": "/Users/olivermarroquin/workspace/ai-factory/transition-records/20260410T031901Z_transition.json",
+    "next_action_type": "transition",
+    "next_command": null,
+    "blocked_commands": [],
+    "context_bundle_refs": [
+      "system-state/current-system-state.md",
+      "system-state/current-objective.md",
+      "batch-reports/20260410T030239Z_queue-state.json"
+    ]
+  },
+  "router": {
+    "next_action_type": "none",
+    "next_command": null,
+    "allowed": false,
+    "reason": "missing_command"
+  },
+  "context": {
+    "next_action_type": "transition",
+    "context_bundle_refs": [
+      "system-state/current-system-state.md",
+      "system-state/current-objective.md",
+      "batch-reports/20260410T030239Z_queue-state.json",
+      "/Users/olivermarroquin/workspace/ai-factory/outcome-records/20260410T030825Z_outcome.json"
+    ]
+  },
+  "instruction": {
+    "instruction_block": "ACTION: NONE\n\nREASON:\nmissing_command\n\nCONTEXT:\nsystem-state/current-system-state.md\nsystem-state/current-objective.md\nbatch-reports/20260410T030239Z_queue-state.json\n/Users/olivermarroquin/workspace/ai-factory/outcome-records/20260410T030825Z_outcome.json"
+  },
+  "recent_operator_runs": [
+    {
+      "operator_run_id": "test-run",
+      "human_action_status": "failed"
+    }
+  ],
+  "validation_summaries": [
+    {
+      "summary": "queue-state drift observed previously"
+    }
+  ]
+}

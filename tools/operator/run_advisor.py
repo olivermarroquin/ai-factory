@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Operator Advisor — v1
+Operator Advisor — v1 (model-backed)
 
-Consumes combined operator JSON and returns Advisor Output Schema JSON.
-Advisory layer only — no execution, no state mutation, no ECS/Guardian calls.
+Consumes combined operator JSON and returns Advisor Output Schema JSON
+via a real model invocation. Advisory layer only — no execution, no state
+mutation, no ECS/Guardian calls.
 
 Usage:
     <operator-json> | python tools/operator/run_advisor.py
@@ -12,6 +13,9 @@ Usage:
 
 import argparse
 import json
+import os
+import shutil
+import subprocess
 import sys
 
 # ---------------------------------------------------------------------------
@@ -27,6 +31,24 @@ ADVISOR_OUTPUT_FIELDS = {
     "continue_allowed",
 }
 
+MODEL_ID = "claude-sonnet-4-6"
+
+# Claude binary — located relative to CLAUDE_CODE_EXECPATH env var if set,
+# otherwise searched on PATH.
+def _find_claude_binary():
+    execpath = os.environ.get("CLAUDE_CODE_EXECPATH")
+    if execpath:
+        candidate = os.path.join(os.path.dirname(execpath), "claude")
+        if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+    found = shutil.which("claude")
+    if found:
+        return found
+    return None
+
+# ---------------------------------------------------------------------------
+# Abort helper
+# ---------------------------------------------------------------------------
 
 def _abort(message):
     print(f"ERROR: {message}", file=sys.stderr)
@@ -42,6 +64,9 @@ def _validate_advisor_output(output):
     Validate advisor output against locked schema before printing.
     Aborts on any violation.
     """
+    if not isinstance(output, dict):
+        _abort("Advisor output is not a JSON object")
+
     for field in ADVISOR_OUTPUT_FIELDS:
         if field not in output:
             _abort(f"Advisor output missing required field: {field!r}")
@@ -71,157 +96,185 @@ def _validate_advisor_output(output):
 
 
 # ---------------------------------------------------------------------------
-# Grounded advisor logic (v1 deterministic stub — model-call shape)
+# Prompt construction
 # ---------------------------------------------------------------------------
 
-def _generate_advisor_response(payload):
-    """
-    v1 grounded advisor. Deterministic — derives output from operator inputs only.
-    No external calls. This is the model-call boundary for future replacement.
+SYSTEM_PROMPT = """\
+You are an Operator Advisor for ai-factory, a controlled execution and orchestration system.
 
-    Returns validated Advisor Output Schema dict.
+Your role is strictly advisory. You:
+- interpret operator outputs only
+- recommend the next human step only
+- never execute commands
+- never mutate state
+- never call ECS or Guardian
+- never invent commands not present in the operator inputs
+- never assert state not present in the provided inputs
+
+You must return ONLY a JSON object matching this exact schema — no other text:
+
+{
+  "recommended_next_step": "<non-empty string>",
+  "reasoning_summary": "<non-empty string>",
+  "risk_flags": [],
+  "missing_inputs_guidance": null,
+  "state_consistency_notes": null,
+  "continue_allowed": false
+}
+
+Schema rules:
+- recommended_next_step: required, non-empty string
+- reasoning_summary: required, non-empty string
+- risk_flags: required, array of strings (may be empty)
+- missing_inputs_guidance: object with "fields" array, or null
+- state_consistency_notes: string, array of strings, or null
+- continue_allowed: required, boolean
+
+If the operator state is blocked or unclear, set continue_allowed = false.
+Do not output anything except the JSON object.
+"""
+
+
+def _build_user_prompt(payload):
+    """
+    Build a grounded advisory prompt from the operator payload.
+    Only includes data present in the input — no invented state.
     """
     snapshot              = payload["snapshot"]
     router                = payload["router"]
     instruction           = payload["instruction"]
     required_input_manifest = payload.get("required_input_manifest")
+    recent_operator_runs  = payload.get("recent_operator_runs") or []
     validation_summaries  = payload.get("validation_summaries") or []
 
-    guardian_status   = snapshot.get("guardian_status", "")
-    router_allowed    = router.get("allowed", False)
-    router_reason     = router.get("reason", "")
-    router_action     = router.get("next_action_type", "none")
-    next_command      = router.get("next_command")
-    execution_phase   = snapshot.get("execution_phase", "")
-    mode              = snapshot.get("mode", "")
-    instruction_block = instruction.get("instruction_block", "")
+    lines = [
+        "CURRENT OPERATOR STATE",
+        "======================",
+        "",
+        "SNAPSHOT:",
+        json.dumps(snapshot, indent=2),
+        "",
+        "ROUTER OUTPUT:",
+        json.dumps(router, indent=2),
+        "",
+        "INSTRUCTION BLOCK:",
+        instruction.get("instruction_block", "(none)"),
+        "",
+    ]
 
-    risk_flags              = []
-    missing_inputs_guidance = None
-    state_consistency_notes = None
-    continue_allowed        = False
-    recommended_next_step   = ""
-    reasoning_summary       = ""
+    if required_input_manifest is not None:
+        lines += [
+            "REQUIRED INPUT MANIFEST:",
+            json.dumps(required_input_manifest, indent=2),
+            "",
+        ]
+    else:
+        lines += ["REQUIRED INPUT MANIFEST: null", ""]
 
-    # --- state_consistency_notes from validation_summaries ---
-    consistency_items = []
-    for entry in validation_summaries:
-        if isinstance(entry, dict):
-            note = entry.get("note") or entry.get("message")
-            if note and isinstance(note, str):
-                consistency_items.append(note)
-        elif isinstance(entry, str) and entry.strip():
-            consistency_items.append(entry.strip())
-    if consistency_items:
-        state_consistency_notes = consistency_items
+    if recent_operator_runs:
+        lines += [
+            "RECENT OPERATOR RUNS (most recent first):",
+            json.dumps(recent_operator_runs[:5], indent=2),
+            "",
+        ]
 
-    # --- Case A: Guardian block ---
-    if guardian_status != "PASS" or (not router_allowed and router_reason == "guardian_block"):
-        risk_flags.append("guardian_block")
-        continue_allowed = False
-        recommended_next_step = (
-            "Do not proceed with execution. "
-            "Guardian validation is failing — resolve the failing check(s) before taking any action. "
-            "Run './ai-factory-run --mode inspect' to see current Guardian output."
-        )
-        failing_checks = snapshot.get("guardian_blockers") or []
-        if failing_checks:
-            check_list = ", ".join(str(c) for c in failing_checks)
-            reasoning_summary = (
-                f"Guardian status is {guardian_status!r}. "
-                f"Failing check(s): {check_list}. "
-                "Execution is blocked until Guardian passes. "
-                "Align objective, control state, and system state with policy before continuing."
-            )
-        else:
-            reasoning_summary = (
-                f"Guardian status is {guardian_status!r}. "
-                "Execution is blocked. Investigate Guardian output and align system state before continuing."
-            )
-        return _build_output(
-            recommended_next_step, reasoning_summary, risk_flags,
-            missing_inputs_guidance, state_consistency_notes, continue_allowed
-        )
+    if validation_summaries:
+        lines += [
+            "VALIDATION SUMMARIES:",
+            json.dumps(validation_summaries, indent=2),
+            "",
+        ]
 
-    # --- Case B: Missing required input (transition needs target_mode) ---
-    if not router_allowed and router_reason == "missing_command" and required_input_manifest:
-        continue_allowed = True
-        fields_guidance = []
-        for inp in required_input_manifest.get("required_inputs", []):
-            name = inp.get("name", "")
-            allowed_values = inp.get("allowed_values")
-            hint = "Provide via operator CLI input."
-            if allowed_values:
-                hint = f"Allowed values: {', '.join(str(v) for v in allowed_values)}. Provide via --transition-to <mode>."
-            fields_guidance.append({"name": name, "usage_hint": hint})
+    lines += [
+        "ADVISORY RULES:",
+        "- If guardian_status != PASS OR router reason == guardian_block: set continue_allowed=false, add 'guardian_block' to risk_flags",
+        "- If router reason == missing_command AND required_input_manifest present: set continue_allowed=true, populate missing_inputs_guidance",
+        "- If router.allowed == true: set continue_allowed=true, recommend running the command in the instruction block",
+        "- Otherwise: set continue_allowed=false",
+        "- missing_inputs_guidance must use this shape when applicable: {\"fields\": [{\"name\": \"<name>\", \"usage_hint\": \"<hint>\"}]}",
+        "- state_consistency_notes: populate only from validation_summaries or recent_operator_runs if they indicate drift or inconsistency; otherwise null",
+        "- Do not invent any commands, state, or risk flags not grounded in the inputs above",
+        "",
+        "Return only the JSON object. No explanation, no preamble, no trailing text.",
+    ]
 
-        missing_inputs_guidance = {"fields": fields_guidance} if fields_guidance else None
+    return "\n".join(lines)
 
-        action_type = required_input_manifest.get("action_type", router_action)
-        recommended_next_step = (
-            f"Provide the required input to proceed with '{action_type}'. "
-            f"Run './ai-factory-operator --transition-to <mode>' with your chosen mode."
-        )
-        reasoning_summary = (
-            f"The operator has identified a '{action_type}' action is needed "
-            f"(execution_phase={execution_phase!r}, mode={mode!r}) "
-            "but cannot proceed without human-provided input. "
-            "The required input manifest is populated above. No execution has occurred."
-        )
-        return _build_output(
-            recommended_next_step, reasoning_summary, risk_flags,
-            missing_inputs_guidance, state_consistency_notes, continue_allowed
-        )
 
-    # --- Case C: Allowed action ---
-    if router_allowed:
-        continue_allowed = True
-        recommended_next_step = (
-            f"Run the command provided in the instruction block to execute the '{router_action}' action."
-        )
-        if next_command:
-            recommended_next_step = (
-                f"Run: {next_command}"
-            )
-        reasoning_summary = (
-            f"Guardian passed. Router approved action '{router_action}' "
-            f"for execution_phase={execution_phase!r}, mode={mode!r}. "
-            "The instruction block is ready. Proceed when operator is satisfied the state is correct."
-        )
-        return _build_output(
-            recommended_next_step, reasoning_summary, risk_flags,
-            missing_inputs_guidance, state_consistency_notes, continue_allowed
+# ---------------------------------------------------------------------------
+# Model invocation
+# ---------------------------------------------------------------------------
+
+def _strip_code_fences(text):
+    """Strip markdown code fences from model output if present."""
+    text = text.strip()
+    if not text.startswith("```"):
+        return text
+    lines = text.splitlines()
+    inner = []
+    in_block = False
+    for line in lines:
+        if line.startswith("```") and not in_block:
+            in_block = True
+            continue
+        if line.startswith("```") and in_block:
+            break
+        inner.append(line)
+    return "\n".join(inner).strip()
+
+
+def _call_model(payload):
+    """
+    Send the operator payload to the model via the claude CLI binary and return
+    the parsed advisor output. Fails closed on any error — no fallback heuristics.
+
+    Uses the claude binary (found via CLAUDE_CODE_EXECPATH) which carries the
+    session credentials. This avoids requiring ANTHROPIC_API_KEY in the environment.
+    """
+    claude_bin = _find_claude_binary()
+    if not claude_bin:
+        _abort(
+            "Cannot locate claude binary. "
+            "Ensure CLAUDE_CODE_EXECPATH is set or 'claude' is on PATH."
         )
 
-    # --- Case D: Blocked none / no_action (non-guardian) ---
-    continue_allowed = False
-    recommended_next_step = (
-        "No executable action is available in the current state. "
-        f"Reason: {router_reason!r}. "
-        "Review the operator output and system state before proceeding."
-    )
-    reasoning_summary = (
-        f"Router returned next_action_type={router_action!r} with allowed=false "
-        f"and reason={router_reason!r}. "
-        f"Current execution_phase={execution_phase!r}, mode={mode!r}. "
-        "No action can be taken until the blocking condition is resolved."
-    )
-    return _build_output(
-        recommended_next_step, reasoning_summary, risk_flags,
-        missing_inputs_guidance, state_consistency_notes, continue_allowed
-    )
+    # Build full prompt: system context + user payload as a single message
+    user_prompt = _build_user_prompt(payload)
+    full_prompt = f"{SYSTEM_PROMPT}\n\n{user_prompt}"
 
+    try:
+        result = subprocess.run(
+            [claude_bin, "--model", MODEL_ID, "-p", full_prompt],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+    except subprocess.TimeoutExpired:
+        _abort("Model call timed out after 120 seconds")
+    except OSError as e:
+        _abort(f"Failed to launch claude binary: {e}")
 
-def _build_output(recommended_next_step, reasoning_summary, risk_flags,
-                  missing_inputs_guidance, state_consistency_notes, continue_allowed):
-    return {
-        "recommended_next_step":  recommended_next_step,
-        "reasoning_summary":      reasoning_summary,
-        "risk_flags":             risk_flags,
-        "missing_inputs_guidance": missing_inputs_guidance,
-        "state_consistency_notes": state_consistency_notes,
-        "continue_allowed":        continue_allowed,
-    }
+    if result.returncode != 0:
+        stderr_snippet = result.stderr.strip()[:400]
+        _abort(
+            f"claude binary exited {result.returncode}. "
+            + (f"stderr: {stderr_snippet}" if stderr_snippet else "")
+        )
+
+    raw_text = _strip_code_fences(result.stdout)
+
+    if not raw_text:
+        _abort("Model returned empty output")
+
+    try:
+        output = json.loads(raw_text)
+    except json.JSONDecodeError as e:
+        _abort(
+            f"Model returned invalid JSON: {e}\n"
+            f"Raw output (first 400 chars): {raw_text[:400]}"
+        )
+
+    return output
 
 
 # ---------------------------------------------------------------------------
@@ -274,7 +327,7 @@ def main():
         raw = sys.stdin.read()
 
     payload = _load_input(raw)
-    output  = _generate_advisor_response(payload)
+    output  = _call_model(payload)
 
     _validate_advisor_output(output)
 
