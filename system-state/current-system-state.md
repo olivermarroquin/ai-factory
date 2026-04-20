@@ -116,9 +116,57 @@ Status: IMPLEMENTED AND ENFORCED
 - ai_factory_transition.py / ai-factory-transition: controls phase transitions
 - validates preconditions, atomically updates current-objective.md, re-runs Guardian and ECS after write
 - writes transition record to transition-records/
+- rollback enforced: if post-write Guardian fails, previous objective is atomically restored before exit
 - direct edits to current-objective.md outside this command are not part of the controlled flow
+- transition-records/ is populated (two records exist)
 
 Status: IMPLEMENTED AND ENFORCED
+
+---
+
+### Operator Layer
+
+A new operator layer exists in tools/operator/. These tools are advisory and orchestration only — they do not modify system state or invoke execution directly.
+
+Components:
+
+| Script | Role |
+|---|---|
+| `tools/operator/generate_snapshot.py` | Generates a structured JSON snapshot of current control state |
+| `tools/operator/route_action.py` | Pure interpreter: maps snapshot to next allowed action |
+| `tools/operator/build_context_bundle.py` | Maps snapshot to minimal context file set for current action |
+| `tools/operator/generate_instruction.py` | Translates snapshot + router + context into a structured instruction block |
+| `tools/operator/run_operator.py` | Orchestrates all four layers; supports multiple output modes |
+| `tools/operator/write_operator_run.py` | Creates and updates operator run records in operator-runs/ |
+| `tools/operator/run_advisor.py` | Model-backed advisor: consumes operator outputs, returns grounded advisory JSON |
+
+Operator entrypoint: `ai-factory-operator`
+
+Supported flags:
+
+```
+./ai-factory-operator                        # instruction block (default)
+./ai-factory-operator --instruction
+./ai-factory-operator --json
+./ai-factory-operator --export-required-input
+./ai-factory-operator --export-record-create
+./ai-factory-operator --export-all
+./ai-factory-operator --transition-to <mode>
+./ai-factory-operator --advisor
+./ai-factory-operator --advisor-with-history
+```
+
+Operator run recording: `ai-factory-record-run create` / `ai-factory-record-run update --file <path>`
+
+Advisor: `ai-factory-advisor` — accepts operator `--json` output via stdin or `--file`
+
+Operator layer limitations:
+- advisor requires `claude` binary on PATH or `CLAUDE_CODE_EXECPATH` set in environment (uses Claude Code session credentials — does not use `ANTHROPIC_API_KEY`)
+- `python3` in bash wrappers resolves to the system Python; `ai-factory-advisor` wrapper uses `python3.12` (the only interpreter with `anthropic` SDK installed on this machine)
+- operator layer is advisory only — it does not gate or block execution
+- snapshot mode derivation uses whole-word keyword matching; inconsistent objectives can produce unexpected mode classification
+
+Status: IMPLEMENTED — advisory and export layer, non-authoritative
 
 ---
 
@@ -179,13 +227,16 @@ Status: IMPLEMENTED AND ENFORCED
 
 - Guardian stale-state check has incomplete artifact mapping for some current step language
 - context transfer depends on manual operator discipline
-- transition-records/ directory is not yet populated (no ai-factory-transition run has been committed)
+- operator advisor requires `claude` binary with session credentials — not portable to environments without Claude Code
+- `python3` interpreter resolution differs between bash wrappers and the shell alias; `ai-factory-advisor` uses `python3.12` explicitly
+- mode-derivation keyword matching (whole-word) is used in snapshot, guardian, and transition; must remain consistent across all three
+- operator layer is not connected to Guardian — operator outputs are advisory and do not gate execution
 
 ---
 
 ## Immediate Next Step
 
-Extend Guardian stale-state coverage to current step language, or continue migration execution and outcome recording cycles.
+Transition back to migration-execution mode for the next migration cycle, or extend Guardian stale-state coverage.
 
 ---
 

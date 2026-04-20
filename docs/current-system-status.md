@@ -72,6 +72,7 @@ Status: **implemented and enforced**
 - atomically updates `system-state/current-objective.md`
 - re-runs full Guardian and ECS after the write
 - writes a transition record to `transition-records/`
+- **rollback enforced**: if post-write Guardian fails, previous objective is atomically restored before exit — system is never left in an invalid objective state
 
 Status: **implemented and enforced**
 
@@ -169,6 +170,48 @@ Assessment: **implemented and enforced as a blocking runtime gate**
 
 ---
 
+### Operator Layer
+
+New layer in `tools/operator/`. Advisory and orchestration only — does not modify system state or invoke execution.
+
+Entrypoint: `ai-factory-operator`
+
+```
+./ai-factory-operator                        # instruction block (default)
+./ai-factory-operator --json                 # full structured output
+./ai-factory-operator --export-required-input
+./ai-factory-operator --export-record-create
+./ai-factory-operator --export-all
+./ai-factory-operator --transition-to <mode> # inject transition command
+./ai-factory-operator --advisor              # model-backed advisory output
+./ai-factory-operator --advisor-with-history # same + recent run context
+```
+
+Components:
+
+| Tool | Role |
+|---|---|
+| `generate_snapshot.py` | Structured JSON snapshot of current control state |
+| `route_action.py` | Pure interpreter: snapshot → next allowed action |
+| `build_context_bundle.py` | Snapshot → minimal context file set |
+| `generate_instruction.py` | Snapshot + router + context → instruction block |
+| `run_operator.py` | Orchestrates all layers with snapshot validation gate |
+| `write_operator_run.py` | Creates and updates operator run records |
+| `run_advisor.py` | Model-backed advisor (uses claude binary via session credentials) |
+
+Operator run recording: `ai-factory-record-run create` / `ai-factory-record-run update --file <path>`
+
+Operator run records stored in: `operator-runs/`
+
+Known limitations:
+- advisor requires `claude` binary with Claude Code session credentials (`CLAUDE_CODE_EXECPATH`)
+- operator layer is advisory only — does not gate or block execution
+- snapshot validation gate in `run_operator.py` enforces phase/action consistency before routing
+
+Assessment: **implemented — advisory and orchestration layer**
+
+---
+
 ### Context System
 
 Current status:
@@ -232,12 +275,15 @@ Status: **implemented and enforced**
 - multiple orchestrator versions remain in the resume-saas repo simultaneously
 - tests in resume-saas require `PYTHONPATH=.` to run
 - context transfer depends on manual operator discipline — no Context Engine
+- operator advisor requires `claude` binary with active Claude Code session — not portable to non-Claude-Code environments
+- `python3` binary resolution differs between bash wrappers; `ai-factory-advisor` uses `python3.12` explicitly (environment-specific)
+- operator layer is not authoritative — outputs are advisory only, do not gate execution
 
 ---
 
 ## Immediate Next System Objective
 
-Extend Guardian stale-state coverage or continue controlled migration execution cycles.
+Transition to migration-execution mode for next cycle, or extend Guardian stale-state coverage.
 
 ---
 
@@ -247,3 +293,5 @@ Extend Guardian stale-state coverage or continue controlled migration execution 
 - `app_build`, `automation_build`, and `ui_conversion` are policy-defined only — not executable.
 - The system is controlled but not autonomous. All execution and phase transitions require explicit operator invocation.
 - State surface files (`system-state/*.md`) must be updated only through controlled mechanisms. Direct edits outside the defined commands are not part of the controlled flow.
+- `ai-factory-transition` now includes atomic rollback: if post-write Guardian fails, the previous objective is restored before exit.
+- transition-records/ is populated with records from completed transitions.

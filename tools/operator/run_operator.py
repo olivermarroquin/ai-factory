@@ -23,7 +23,14 @@ import sys
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
+# Make tools/operator importable
+_OPERATOR_DIR = os.path.dirname(os.path.abspath(__file__))
+if _OPERATOR_DIR not in sys.path:
+    sys.path.insert(0, _OPERATOR_DIR)
+
 VALID_TRANSITION_MODES = {"system-building", "migration-execution"}
+
+OPERATOR_RUNS_DIR = os.path.join(REPO_ROOT, "operator-runs")
 
 SNAPSHOT_TOOL    = os.path.join(REPO_ROOT, "tools", "operator", "generate_snapshot.py")
 ROUTER_TOOL      = os.path.join(REPO_ROOT, "tools", "operator", "route_action.py")
@@ -101,6 +108,32 @@ def _run(tool, stdin_data=None):
         return json.loads(result.stdout)
     except json.JSONDecodeError as e:
         _abort(f"{tool_name} produced invalid JSON: {e}")
+
+
+# ---------------------------------------------------------------------------
+# History loader for --advisor-with-history
+# ---------------------------------------------------------------------------
+
+def _load_recent_operator_runs(n):
+    """Load up to n most recent operator-run records. Returns list (may be empty)."""
+    if not os.path.isdir(OPERATOR_RUNS_DIR):
+        return []
+    try:
+        files = sorted(
+            [f for f in os.listdir(OPERATOR_RUNS_DIR) if f.endswith("_operator-run.json")],
+            reverse=True,
+        )[:n]
+    except OSError:
+        return []
+    runs = []
+    for fname in files:
+        fpath = os.path.join(OPERATOR_RUNS_DIR, fname)
+        try:
+            with open(fpath, encoding="utf-8") as f:
+                runs.append(json.load(f))
+        except (OSError, json.JSONDecodeError):
+            continue
+    return runs
 
 
 # ---------------------------------------------------------------------------
@@ -199,6 +232,20 @@ def main():
         dest="export_all",
         help="Emit combined export: instruction_block, required_input_manifest, record_create_payload",
     )
+    output_group.add_argument(
+        "--advisor",
+        action="store_true",
+        default=False,
+        dest="advisor",
+        help="Run advisor on operator output and return Advisor Output Schema JSON",
+    )
+    output_group.add_argument(
+        "--advisor-with-history",
+        action="store_true",
+        default=False,
+        dest="advisor_with_history",
+        help="Same as --advisor but includes recent operator runs in advisor input",
+    )
     parser.add_argument(
         "--transition-to",
         default=None,
@@ -294,6 +341,26 @@ def main():
             "record_create_payload":    record_create_payload,
         }
         print(json.dumps(output, indent=2))
+
+    elif args.advisor or args.advisor_with_history:
+        from run_advisor import run_advisor_core
+
+        advisor_input = {
+            "snapshot":    snapshot,
+            "router":      router,
+            "context":     context,
+            "instruction": instruction,
+        }
+
+        if required_input_manifest is not None:
+            advisor_input["required_input_manifest"] = required_input_manifest
+
+        if args.advisor_with_history:
+            advisor_input["recent_operator_runs"]  = _load_recent_operator_runs(3)
+            advisor_input["validation_summaries"]   = []
+
+        advisor_output = run_advisor_core(advisor_input)
+        print(json.dumps(advisor_output, indent=2))
 
     else:
         # --instruction or default: print instruction_block string only

@@ -278,30 +278,47 @@ def _call_model(payload):
 
 
 # ---------------------------------------------------------------------------
-# Input loading and validation
+# Public API — callable directly from run_operator.py
 # ---------------------------------------------------------------------------
 
 REQUIRED_INPUT_SECTIONS = ["snapshot", "router", "context", "instruction"]
 
 
-def _load_input(raw):
-    try:
-        payload = json.loads(raw)
-    except json.JSONDecodeError as e:
-        _abort(f"Invalid JSON input: {e}")
-
+def _validate_input(payload):
+    """Validate required sections are present and are dicts. Aborts on failure."""
     for section in REQUIRED_INPUT_SECTIONS:
         if section not in payload:
             _abort(f"Missing required input section: {section!r}")
         if not isinstance(payload[section], dict):
             _abort(f"Input section {section!r} must be an object")
 
+
+def run_advisor_core(input_dict):
+    """
+    Core advisor entry point. Accepts a pre-assembled input dict, calls the
+    model, validates output, and returns the Advisor Output Schema dict.
+
+    Aborts (stderr + exit non-zero) on any failure — no partial output.
+    This function is the callable API for run_operator.py integration.
+    """
+    _validate_input(input_dict)
+    output = _call_model(input_dict)
+    _validate_advisor_output(output)
+    return output
+
+
+# ---------------------------------------------------------------------------
+# CLI entry point
+# ---------------------------------------------------------------------------
+
+def _load_input(raw):
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as e:
+        _abort(f"Invalid JSON input: {e}")
+    _validate_input(payload)
     return payload
 
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 
 def main():
     parser = argparse.ArgumentParser(
@@ -327,10 +344,7 @@ def main():
         raw = sys.stdin.read()
 
     payload = _load_input(raw)
-    output  = _call_model(payload)
-
-    _validate_advisor_output(output)
-
+    output  = run_advisor_core(payload)
     print(json.dumps(output, indent=2))
 
 

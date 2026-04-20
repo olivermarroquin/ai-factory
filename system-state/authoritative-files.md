@@ -29,12 +29,33 @@ These scripts are the official operator interface to the system. They are author
 | -------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `ai_factory_run.py`              | Official execution entrypoint — coordinates state → ECS → Guardian → scope → execution           |
 | `ai-factory-run`                 | Bash wrapper for `ai_factory_run.py`                                                              |
-| `ai_factory_transition.py`       | Official objective transition command — controls phase changes with atomic write and validation   |
+| `ai_factory_transition.py`       | Official objective transition command — controls phase changes with atomic write, validation, and rollback |
 | `ai-factory-transition`          | Bash wrapper for `ai_factory_transition.py`                                                       |
 | `ai_factory_record_outcome.py`   | Official post-execution outcome recording command — validates outcome and updates state surface   |
 | `ai-factory-record-outcome`      | Bash wrapper for `ai_factory_record_outcome.py`                                                   |
 
 **Rule:** Execution must be initiated through `ai-factory-run`. Objective mode must be changed through `ai-factory-transition`. Post-execution outcomes must be recorded through `ai-factory-record-outcome`. Direct invocation of lower-level scripts outside these entrypoints bypasses the enforced control loop and is not part of the controlled flow.
+
+---
+
+## Operator Layer (Advisory Only)
+
+These tools are advisory and orchestration only. They read authoritative sources but do not modify system state and do not gate execution.
+
+| Script                                      | What it governs                                                                              |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `tools/operator/generate_snapshot.py`       | Generates structured JSON control-state snapshot from authoritative sources                  |
+| `tools/operator/route_action.py`            | Pure interpreter: maps snapshot to next allowed action                                       |
+| `tools/operator/build_context_bundle.py`    | Maps snapshot to minimal context file set for current action                                 |
+| `tools/operator/generate_instruction.py`    | Translates snapshot + router + context into structured instruction block                     |
+| `tools/operator/run_operator.py`            | Orchestrates all operator layers; implements snapshot validation gate                        |
+| `tools/operator/write_operator_run.py`      | Creates and updates operator run records in `operator-runs/`                                 |
+| `tools/operator/run_advisor.py`             | Model-backed advisor — consumes operator outputs, returns grounded advisory JSON             |
+| `ai-factory-operator`                       | Bash entrypoint for operator layer                                                           |
+| `ai-factory-record-run`                     | Bash wrapper for operator run recording                                                      |
+| `ai-factory-advisor`                        | Bash wrapper for standalone advisor invocation                                               |
+
+**Rule:** Operator layer outputs are advisory only. They do not replace Guardian, ECS, or the controlled entrypoints. Do not treat operator advisory output as authoritative execution decisions.
 
 ---
 
@@ -89,6 +110,7 @@ These files are produced during execution. They are authoritative records of wha
 | Stage artifacts       | `ventures/<venture>/migration-logs/<date>_step-<NN>_<stage>.md`    | Output of each pipeline stage for a given run           |
 | Transition record     | `transition-records/<ts>_transition.json`                          | Objective transition: from/to mode, reason, Guardian status at time of transition |
 | Outcome record        | `outcome-records/<ts>_outcome.json`                                | Post-execution outcome: queue-state, job statuses, declared outcome, Guardian status |
+| Operator run record   | `operator-runs/<ts>_operator-run.json`                             | Operator session: snapshot, routing, instruction, human action status (advisory, non-authoritative) |
 
 **Rule:** Execution artifacts are write-once records. Re-running requires new artifacts from a new preflight cycle. Transition records are write-once per transition. Outcome records are write-once per queue-state.
 
@@ -134,3 +156,5 @@ These files are the system's working memory for human operators and agents. They
 9. **Objective mode changes must go through `ai-factory-transition`.** Do not edit `current-objective.md` directly as a substitute for a controlled transition.
 10. **Guardian must pass before execution proceeds.** A Guardian FAIL is a hard block. There is no force flag.
 11. **Post-execution outcomes must be recorded through `ai-factory-record-outcome`.** Do not manually edit `current-system-state.md` as a substitute for a controlled outcome record. Each queue-state may have at most one outcome record.
+12. **Operator layer outputs are advisory only.** Do not treat `ai-factory-operator`, `ai-factory-advisor`, or operator run records as authoritative execution decisions or state updates.
+13. **Transition rollback is automatic.** If `ai-factory-transition` post-write Guardian fails, the previous objective is atomically restored. The system will never be left in a Guardian-failing objective state by a failed transition.
