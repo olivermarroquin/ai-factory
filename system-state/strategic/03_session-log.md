@@ -4,44 +4,50 @@
 
 ---
 
-## 2026-04-21 — Knowledge capture and state correction (Claude Code in VS Code)
+## 2026-04-21 — Knowledge capture session (Claude Code in VS Code)
 
 **Duration:** ~2 hours (estimate)
 **Mode:** Documentation + state correction
 **Interface:** Claude Code in VS Code
 
 ### What Happened
-- Drafted and committed retrospective state capture (2026-04-19 entry)
-- Drafted and committed resume-saas backend migration retro with step 14/15 pipeline investigation findings
-- Initialized second-brain/ as its own git repo (first commit: 20 files, all existing content + retro)
-- Updated second-brain/.gitignore with full Obsidian/macOS/editor artifact exclusions
-- Identified and corrected test-count inaccuracy in current-system-state.md (was ambiguous "40 tests", corrected to "40 defined, 28 passing, 12 blocked")
-- Identified stale state ambiguity as a Guardian-relevant issue
+- Drafted and committed retrospective state capture (2026-04-19 entry) to 03_session-log.md
+- Drafted and committed resume-saas backend migration retro to second-brain
+- Drafted, committed, and amended ai-factory control system retro with operator context
+- Initialized second-brain/ as git repository with .gitignore for Obsidian files
+- Identified and corrected test-count ambiguity in current-system-state.md
+- Added Task Completion Checkpoint Protocol to workspace/CLAUDE.md
 
 ### Decisions Made
-- State files will use explicit language: 'defined' / 'passing' / 'failing' / 'blocked' rather than bare counts
-- python-docx dependency blocker is noted as debt, not fixed in this session (defer until frontend work is underway or explicitly prioritized)
-- second-brain gets its own git repo, consistent with ai-factory and resume-saas architecture (no submodules — workspace root stays non-git for now)
+- second-brain/ gets its own git repo, to be backed up to GitHub separately
+- State files will use explicit language ('defined'/'passing'/'failing'/'blocked') rather than bare counts
+- python-docx dependency blocker is noted as debt, not fixed this session (install when frontend work needs it)
+- Task Completion Checkpoint Protocol is mandatory, not optional — enforces knowledge capture between tasks
 
 ### Artifacts Produced
 - `second-brain/06_retros/2026-04-20_resume-saas-backend-migration-retro.md`
+- `second-brain/06_retros/2026-04-20_ai-factory-control-system-retro.md`
 - `second-brain/.gitignore`
-- `ai-factory/system-state/strategic/03_session-log.md` — 2026-04-19 baseline entry + this entry
-- `ai-factory/system-state/current-system-state.md` — test count corrected
-- Playbook prompts did NOT run this session — those are next
+- `workspace/CLAUDE.md` (updated with Task Completion Checkpoint Protocol)
+- `ai-factory/system-state/current-system-state.md` (corrected test count)
 
 ### Key Insights
-- Retrospective captures reveal hidden state drift: the act of documenting exposed that current-system-state.md had language ambiguity that had been quietly miscommunicating status
-- Running pytest as part of the retro is valuable — objective verification beats cached assumptions
-- Step 14 pipeline failures (6/15 runs) were distributed across multiple stages (coder, planner, apply, reviewer, classification) — indicates model output inconsistency under same input, not a code-under-test issue
-- Step 15's 14 successive successful re-runs were deliberate iterative refinement, not error recovery — the pipeline has no mechanism to distinguish these, which is a real artifact trail gap
+- Retrospective capture reveals hidden state drift: writing the retros exposed that current-system-state.md had language ambiguity
+- The inability to remember the specific Guardian expansion bug after two weeks proved the need for build-time capture vs. retroactive retros
+- ai-factory control system retro showed 38 docs for 2 formal production uses — the workspace audit's "factory polishing" pattern playing out in data
+- Scope evaluation got more honest after operator provided context: Guardian expansion was legitimately reactive, advisor layer had dual motivation (one product-driven, one speculative), workflow stubs were intentional schema reservations
+- Knowledge capture infrastructure already existed; what was missing was an enforcement gate between tasks
+- Step 14 pipeline failures (6/15 runs) were distributed across multiple stages (coder, planner, apply, reviewer, classification) — model output inconsistency under same input, not a code-under-test issue
+- Step 15's 14 successive successful re-runs were deliberate iterative refinement, not error recovery — the pipeline has no mechanism to distinguish these, a real artifact trail gap
 
 ### Next Session Should Start With
-- Playbook prompts: `second-brain/03_playbooks/frontend-nextjs-app-router-scaffold.md` (after scaffold phase completes) — but scaffold hasn't run yet, so the actual next task is the frontend scaffold itself
+- Prompts 4-6 from the retrospective knowledge capture plan if knowledge capture isn't finished, OR
+- Begin resume-saas frontend scaffold (Week 1 build tasks in 02_current-focus.md) if knowledge capture is complete
 - First action: scaffold `repos/resume-saas/frontend/` with Next.js 14 (App Router, TypeScript, Tailwind)
 
 ### Open Questions For Next Session
-- Should python-docx be installed now to unblock the 12 tests, or deferred until frontend integration work touches resume parsing? (Likely: install when relevant.)
+- Should python-docx be installed to unblock the 12 tests? (Likely defer until frontend integration touches resume parsing.)
+- Should the workspace root become a git repo so workspace/CLAUDE.md is version-controlled? (Deferred decision — not critical this session.)
 
 ---
 
