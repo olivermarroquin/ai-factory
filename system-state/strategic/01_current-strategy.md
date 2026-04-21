@@ -25,9 +25,9 @@ Build a portfolio of proven apps and automations, then offer clients fast deploy
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Frontend framework | Next.js 14+ App Router | Already have experience, dominant React meta-framework, zero-config Vercel deploy |
+| Frontend framework | Next.js 16.2+ App Router (React 19.2) | Current stable as of April 2026. create-next-app defaults. Major changes from 14: Turbopack default, async params, new routing/caching APIs. Core App Router patterns still apply. |
 | Backend framework | Flask (Python) | Already built for resume-saas |
-| Styling | Tailwind CSS | Standard, fast, reusable across apps |
+| Styling | Tailwind CSS v4 | Current stable. Config-in-CSS via @theme blocks (no tailwind.config.ts file). Utility classes unchanged from v3. @import "tailwindcss" replaces @tailwind directives. |
 | Frontend deployment | Vercel | Zero-config Next.js deploys |
 | Backend deployment | Railway | Simple Flask hosting |
 | Auth for resume-saas MVP | None | Adds 2-4 weeks; add later when multi-user matters |
