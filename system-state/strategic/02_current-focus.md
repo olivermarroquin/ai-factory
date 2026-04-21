@@ -9,14 +9,23 @@ Scaffold resume-saas frontend with Claude Code in VS Code. Create CLAUDE.md conv
 
 ## In Progress
 
-- [ ] Set up strategic context files in `ai-factory/system-state/strategic/`
+### Setup
+- [ ] Set up strategic context files in `ai-factory/system-state/strategic/` (save all 6 files)
+- [ ] Save `workspace/CLAUDE.md` at workspace root (delete the misnamed `CLAUDE .md` with a space if it exists)
+- [ ] Review and update `repos/resume-saas/CLAUDE.md` (already exists — compare with new version and merge)
 - [ ] Upload strategic context files to Claude Project as knowledge
-- [ ] Create `resume-saas/frontend/` directory with Next.js 14 (App Router, TypeScript, Tailwind)
-- [ ] Create `resume-saas/CLAUDE.md` with repo conventions
-- [ ] Create `resume-saas/docs/frontend-mvp-spec-v1.md` (3-screen spec)
-- [ ] Install dependencies (Next.js, Tailwind, TypeScript)
+- [ ] Test session start protocol in new execution chat
+
+### Build
+- [ ] Create `repos/resume-saas/frontend/` directory contents with Next.js 14 (directory exists but empty: app/, components/, lib/)
+- [ ] Create `repos/resume-saas/docs/frontend-mvp-spec-v1.md` (3-screen spec)
+- [ ] Create `repos/resume-saas/docs/build-log.md` (starts empty, Claude Code appends as work happens)
+- [ ] Install dependencies (Next.js, Tailwind, TypeScript) — package.json doesn't exist yet
 - [ ] Verify frontend can call existing backend `/api/rewrite` endpoint
-- [ ] Create `resume-saas/docker-compose.yml` for local dev
+- [ ] Create `repos/resume-saas/docker-compose.yml` for local dev
+
+### Knowledge Capture (Ongoing Throughout Week)
+- [ ] Append build log entries after each significant task (see Knowledge Capture Protocol in workspace/CLAUDE.md)
 
 ## Completed This Week
 (Starting fresh — no completions yet)
@@ -31,12 +40,14 @@ Scaffold resume-saas frontend with Claude Code in VS Code. Create CLAUDE.md conv
 - Build Screen 2: Processing state component
 - Build Screen 3: Result display + download button (`ResumePreview.tsx`, `DownloadButton.tsx`)
 - Wire form → API → response flow
+- **Playbook capture:** Write `second-brain/03_playbooks/frontend-nextjs-app-router-scaffold.md` after scaffold phase completes
 - **Parallel (evenings):** Build VIS MVP (`ai-factory/tools/vis/process_source.py`)
 
 ### Week 3
 - Frontend ↔ backend integration tests
 - End-to-end flow tests (input → API → resume generation → download)
 - Error handling and user feedback
+- **Playbook capture:** Write `second-brain/03_playbooks/backend-flask-blueprint-integration.md` after integration works
 - **Parallel:** Build `weekly_synthesis.py` for VIS
 - Start daily VIS processing (2-3 sources/day)
 
@@ -46,7 +57,8 @@ Scaffold resume-saas frontend with Claude Code in VS Code. Create CLAUDE.md conv
 - Configure CORS, environment variables
 - Basic production smoke tests
 - Use resume-saas for 5 real job applications
-- Write first retro in `second-brain/07_lessons/`
+- **Playbook capture:** Write `second-brain/03_playbooks/deployment-vercel-railway.md` after first successful deploy
+- **Retro:** Write `second-brain/06_retros/2026-MM-DD_resume-saas-mvp-retro.md` after MVP is live
 
 ## DO NOT Work On Right Now
 
@@ -60,10 +72,27 @@ Scaffold resume-saas frontend with Claude Code in VS Code. Create CLAUDE.md conv
 - Multi-agent coordination setup
 - Managed Agents configuration
 - OpenClaw setup
+- Cowork setup (revisit after MVP ships)
 
 ## Key Reminders
 
 - When in doubt between "polish the factory" and "ship the product" — ship
+- When in doubt between "capture knowledge" and "skip it" — capture
 - Do not route frontend work through the migration pipeline
 - Use Claude Code in VS Code for 80%+ of implementation
 - Update `02_current-focus.md` and `03_session-log.md` at end of each work session
+- Write build log entries as work happens, not after the fact
+- The migration API spec lives in `ai-factory/docs/rewrite-api-spec-v1.md`, NOT in resume-saas
+
+## Knowledge Capture Expected This Week
+
+By end of Week 4, the following artifacts should exist in `second-brain/`:
+
+1. `03_playbooks/frontend-nextjs-app-router-scaffold.md`
+2. `03_playbooks/backend-flask-blueprint-integration.md`
+3. `03_playbooks/deployment-vercel-railway.md`
+4. `06_retros/2026-MM-DD_resume-saas-mvp-retro.md`
+
+Plus ongoing entries in `repos/resume-saas/docs/build-log.md`.
+
+These artifacts are what will eventually become the `app-build` workflow in ai-factory (which already has an empty `ai-factory/workflows/app-build/` directory waiting for content). Capturing them during resume-saas is the foundation for automating app #2 and beyond.

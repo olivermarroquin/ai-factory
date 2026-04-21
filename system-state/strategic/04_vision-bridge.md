@@ -35,30 +35,35 @@ Example end-state request: "Hey, I need you to build me an automation system tha
 
 ## The Five Subsystems (Full Architecture)
 
-Per `master-system-map.md`, the AI Operating System has 5 layers:
+Per `master-system-map.md`, the AI Operating System has 5 layers. Layer names map directly to subdirectories under `second-brain/01_ai-operating-system/`:
 
 ### Layer 1: Executive Layer (ECA)
 Top-level command, goals, priorities.
-- **Status:** Spec only (`executive-command-assistant_(eca)_system.md`)
+- **Spec location:** `second-brain/01_ai-operating-system/coordination-layer/executive-command-assistant_(eca)_system.md`
+- **Status:** Spec only
 - **Build when:** Level 3 is real and there are multiple active projects to coordinate
 
 ### Layer 2: Coordination Layer (PM Agents)
 Per-project management.
-- **Status:** Spec only (`ai-project-manager-agent-layer.md`)
+- **Spec location:** `second-brain/01_ai-operating-system/coordination-layer/ai-project-manager-agent-layer.md`
+- **Status:** Spec only
 - **Build when:** Level 3 is real and at least 3 concurrent ventures exist
 
 ### Layer 3: Control Layer (ECS + Guardian)
 What executes next, is it allowed.
+- **Spec locations:** `second-brain/01_ai-operating-system/control-layer/`
 - **Status:** Real, working, proven on migration workflows
 - **Current action:** Keep using for migration. Expand to app-build workflows after resume-saas ships.
 
 ### Layer 4: Execution Layer (AI Factory + Workers)
 Does the actual work.
+- **Spec location:** `second-brain/01_ai-operating-system/execution-layer/`
 - **Status:** Migration workflows work. App-build workflows don't exist yet.
 - **Current action:** Build resume-saas manually first. Use that to define what an app-build workflow needs.
 
 ### Layer 5: Intelligence Layer (Knowledge OS + Capability Engine)
 Learning and compounding.
+- **Spec locations:** `second-brain/01_ai-operating-system/intelligence-layer/`
 - **Status:** Architecture exists, content doesn't. Start populating now.
 - **Current action:** Write retros after each phase. Build VIS MVP. Stop designing, start using.
 
@@ -69,8 +74,8 @@ Learning and compounding.
 ### Near-term (Weeks 1-8) — ACTIVE NOW
 - **resume-saas** — First portfolio piece (Weeks 1-4)
 - **Video Intelligence System MVP** — Automated source processing (Weeks 2-3)
-- **Vault structure** — apps/, clients/, intelligence/, lessons/, shared-intelligence/
-- **First retro** — Populate Knowledge OS with real lessons (Week 4)
+- **Pattern capture** — `second-brain/03_playbooks/` gets populated as resume-saas teaches reusable patterns
+- **First retro** — `second-brain/06_retros/` (Week 4)
 - **App #2** — Chosen from VIS recommendations (Weeks 5-8)
 
 ### Mid-term (Month 2-4)
@@ -121,29 +126,54 @@ Learning and compounding.
 
 ## Full Reference Documents (Read Only When Relevant)
 
-**Architecture:**
+All paths are relative to workspace root.
+
+**Architecture — Master:**
 - `second-brain/01_ai-operating-system/master-system-map.md` — Full architecture overview
-- `second-brain/01_ai-operating-system/execution-optimizer_execution-control-system.md` — ECS details
-- `second-brain/01_ai-operating-system/system-guardian_validation-engine.md` — Guardian details
-- `second-brain/01_ai-operating-system/context-engine_handoff-system-builder.md` — Context handoffs
+- `second-brain/01_ai-operating-system/WORKSPACE_AUDIT.md` — Current workspace state and risks
 
-**Knowledge & Intelligence:**
-- `second-brain/01_ai-operating-system/knowledge-os_architecture-and-expansion-system.md` — Knowledge OS
-- `second-brain/01_ai-operating-system/knowledge-os_obsidian-system-builder.md` — Obsidian specifics
-- `second-brain/01_ai-operating-system/video-intelligence-system.md` — Full VIS spec (end-state)
+**Architecture — Control Layer:**
+- `second-brain/01_ai-operating-system/control-layer/execution-optimizer_execution-control-system.md`
+- `second-brain/01_ai-operating-system/control-layer/system-guardian_validation-engine.md`
+- `second-brain/01_ai-operating-system/control-layer/context-engine_handoff-system-builder.md`
 
-**Future Systems (Don't Implement Yet):**
-- `second-brain/01_ai-operating-system/executive-command-assistant_(eca)_system.md` — ECA
-- `second-brain/01_ai-operating-system/ai-project-manager-agent-layer.md` — PM Agents
-- `second-brain/01_ai-operating-system/ai-agent_capability-engine.md` — Agent capability
-- `second-brain/01_ai-operating-system/human-ai-skill-development_capability-engine.md` — Human skill dev
-- `second-brain/01_ai-operating-system/continuous-testing_qa-automation-system.md` — Testing
-- `second-brain/01_ai-operating-system/app-factory-system.md` — App Factory
+**Architecture — Coordination Layer (future, don't implement yet):**
+- `second-brain/01_ai-operating-system/coordination-layer/executive-command-assistant_(eca)_system.md`
+- `second-brain/01_ai-operating-system/coordination-layer/ai-project-manager-agent-layer.md`
+
+**Architecture — Execution Layer:**
+- `second-brain/01_ai-operating-system/execution-layer/app-factory-system.md`
+- `second-brain/01_ai-operating-system/execution-layer/backend_api.md`
+
+**Architecture — Quality Layer (post-MVP):**
+- `second-brain/01_ai-operating-system/quality-layer/continuous-testing_qa-automation-system.md`
+
+**Architecture — Intelligence Layer:**
+- `second-brain/01_ai-operating-system/intelligence-layer/knowledge-os/knowledge-os_architecture-and-expansion-system.md`
+- `second-brain/01_ai-operating-system/intelligence-layer/knowledge-os/knowledge-os_obsidian-system-builder.md`
+- `second-brain/01_ai-operating-system/intelligence-layer/knowledge-os/video-intelligence-system.md`
+- `second-brain/01_ai-operating-system/intelligence-layer/capability/ai-agent_capability-engine.md`
+- `second-brain/01_ai-operating-system/intelligence-layer/capability/human-ai-skill-development_capability-engine.md`
 
 **Business Context:**
 - `second-brain/05_reference/ai-agency.md` — Agency vision
-- `second-brain/02_ventures/resume-saas/overview.md` — Resume SaaS overview
-- `WORKSPACE_AUDIT.md` — Current workspace state and risks
+- `second-brain/02_ventures/resume-saas/resume-saas-overview.md` — Resume SaaS overview
+- `second-brain/02_ventures/resume-saas/source-analysis.md` — Source code analysis
+
+**Venture Artifacts (ai-factory-side):**
+- `ai-factory/ventures/resume-saas/README.md`
+- `ai-factory/ventures/resume-saas/notes/build-sequence.md`
+- `ai-factory/ventures/resume-saas/references/` — Backend service map, engine extraction plan, source map, transformation plan
+
+**API Specs (Migration Context — ai-factory):**
+- `ai-factory/docs/rewrite-api-spec-v1.md` — Rewrite API contract
+- `ai-factory/docs/resume-api-spec-v1.md` — Resume API contract
+- `ai-factory/docs/jobs-api-spec-v1.md` — Jobs API contract
+
+**Knowledge Capture Locations (populated as work happens):**
+- `second-brain/03_playbooks/` — Reusable patterns captured during builds
+- `second-brain/06_retros/` — Retros after milestones
+- `repos/<venture>/docs/build-log.md` — Task-level build trace
 
 **Rule:** Do not read all of these every session. Use this file for orientation. Read specific specs only when they're relevant to current work (use `05_active-references.md` to track what's relevant now).
 

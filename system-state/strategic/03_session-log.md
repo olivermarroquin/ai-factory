@@ -4,6 +4,63 @@
 
 ---
 
+## 2026-04-19 — Retrospective state capture (Claude Code in VS Code)
+
+**Duration:** N/A (retrospective summary)
+**Mode:** Documentation
+**Interface:** Claude Code in VS Code
+
+### Purpose
+Capture the state of the workspace as of the start of the strategic context
+system. Establishes a baseline for future session entries.
+
+### State of ai-factory
+- **Latest tag:** v43-current-system-docs
+- **Phase:** Controlled Execution — Full Lifecycle Control Implemented
+- **Objective mode:** migration-execution (set via ai-factory-transition)
+- **Latest execution cycle:** 2026-04-10, outcome: succeeded (proving_pass_cycle_B)
+- **What works:** Full control loop enforced — ECS resolution, Guardian (6 checks), operator entrypoint (ai-factory-run), objective transition (ai-factory-transition), post-execution outcome recording (ai-factory-record-outcome), operator advisory layer (ai-factory-operator + ai-factory-advisor)
+- **Only executable workflow:** `code_migration` (class A, reason codes A_EXACT_PORT / A_SCHEMA_PORT). `app_build`, `automation_build`, `ui_conversion` defined but NOT executable.
+- **Two transition records exist** in transition-records/
+- **Context Engine:** NOT IMPLEMENTED — relies on manual operator discipline
+- **Knowledge OS:** NOT IMPLEMENTED
+
+### State of resume-saas backend
+- **Status:** Phase 1 and Phase 2 complete (tags v40, v42)
+- **Tests:** 40 defined; 28 passing, 12 blocked by missing `python-docx` dependency (test_resume_api.py)
+- **API blueprints:** rewrite (POST /api/rewrite), resume, jobs — all wired into app.py
+- **Services:** jd_parser, resume_parser, proposal_validator, rewrite_formatter, rewrite_orchestrators v1–v5 (v5 is current; v1–v4 preserved as migration history)
+- **Schemas:** proposal_schema
+- **Empty dirs:** backend/models/, backend/utils/ — not populated
+- **Note:** resume-saas backend served as the migration validation harness during ai-factory build, not as a product priority
+
+### State of resume-saas frontend
+- Directory `repos/resume-saas/frontend/` exists with subdirectories `app/`, `components/`, `lib/` — all empty
+- No package.json, no Next.js scaffold, no components
+- Not started
+
+### State of second-brain
+- 18 spec/reference files across `01_ai-operating-system/`, `02_ventures/`, and `05_reference/`
+- Knowledge OS: structure present, no content captured yet — no patterns, no retros, no playbooks
+- Used as reference input during ai-factory build; not yet used as an active learning system
+
+### What's Active / Not Active
+- **Active:** ai-factory migration pipeline (code_migration only), resume-saas backend (stable, not being modified)
+- **Paused / not started:** resume-saas frontend build, VIS tool build, second-brain knowledge capture workflow, app-factory workflows (app_build, automation_build), operator tool expansion
+
+### Known Issues / Debt
+- Guardian stale-state check has incomplete artifact mapping for some current step language
+- Operator advisor requires `claude` binary on PATH — not portable without Claude Code session credentials
+- `python3` interpreter resolution inconsistency between bash wrappers and shell alias (ai-factory-advisor uses python3.12 explicitly as workaround)
+- Mode-derivation keyword matching (whole-word) must stay consistent across snapshot, guardian, and transition — fragile if objective language drifts
+- No docker-compose.yml for local dev (frontend + backend together)
+- No frontend MVP spec document yet
+- No workspace/CLAUDE.md with session protocol yet (a misnamed `CLAUDE .md` with a space exists)
+- No build-log.md in resume-saas/docs/ yet
+- Missing `python-docx` dependency blocks 12 resume API tests
+
+---
+
 ## 2026-04-20 — Strategic Planning Session (Claude.ai chat)
 
 **Duration:** ~3 hours
