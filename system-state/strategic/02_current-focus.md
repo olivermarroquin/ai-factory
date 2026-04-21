@@ -1,6 +1,6 @@
 # Current Focus
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-04-21
 **Current Week:** Week 1 of resume-saas MVP build
 
 ## This Week's Objective
@@ -8,13 +8,6 @@
 Scaffold resume-saas frontend with Claude Code in VS Code. Create CLAUDE.md conventions, frontend spec, and working Next.js scaffold that can call the existing Flask backend.
 
 ## In Progress
-
-### Setup
-- [ ] Set up strategic context files in `ai-factory/system-state/strategic/` (save all 6 files)
-- [ ] Save `workspace/CLAUDE.md` at workspace root (delete the misnamed `CLAUDE .md` with a space if it exists)
-- [ ] Review and update `repos/resume-saas/CLAUDE.md` (already exists — compare with new version and merge)
-- [ ] Upload strategic context files to Claude Project as knowledge
-- [ ] Test session start protocol in new execution chat
 
 ### Build
 - [ ] Create `repos/resume-saas/frontend/` directory contents with Next.js 14 (directory exists but empty: app/, components/, lib/)
@@ -24,11 +17,27 @@ Scaffold resume-saas frontend with Claude Code in VS Code. Create CLAUDE.md conv
 - [ ] Verify frontend can call existing backend `/api/rewrite` endpoint
 - [ ] Create `repos/resume-saas/docker-compose.yml` for local dev
 
+### Setup
+- [ ] Set up strategic context files in `ai-factory/system-state/strategic/` (save all 6 files)
+- [ ] Save `workspace/CLAUDE.md` at workspace root (delete the misnamed `CLAUDE .md` with a space if it exists)
+- [ ] Review and update `repos/resume-saas/CLAUDE.md` (already exists — compare with new version and merge)
+- [ ] Upload strategic context files to Claude Project as knowledge
+- [ ] Test session start protocol in new execution chat
+
 ### Knowledge Capture (Ongoing Throughout Week)
-- [ ] Append build log entries after each significant task (see Knowledge Capture Protocol in workspace/CLAUDE.md)
+- [x] Append build log entries after each significant task (see Knowledge Capture Protocol in workspace/CLAUDE.md)
 
 ## Completed This Week
-(Starting fresh — no completions yet)
+
+### Knowledge Capture Session (2026-04-21)
+- [x] Added Task Completion Checkpoint Protocol to `workspace/CLAUDE.md`
+- [x] Wrote `second-brain/06_retros/2026-04-20_resume-saas-backend-migration-retro.md`
+- [x] Wrote `second-brain/06_retros/2026-04-20_ai-factory-control-system-retro.md` (with operator context amendments)
+- [x] Wrote `second-brain/03_playbooks/backend-flask-three-layer-structure.md`
+- [x] Wrote `second-brain/03_playbooks/migration-pipeline-operator-workflow.md`
+- [x] Wrote `second-brain/03_playbooks/legacy-cli-to-saas-backend-conversion.md`
+- [x] Initialized `second-brain/` as git repository
+- [x] Corrected test count language in `current-system-state.md` and session log
 
 ## Blocked / Waiting On
 (Nothing blocking)
