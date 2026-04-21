@@ -216,7 +216,7 @@ Status: IMPLEMENTED AND ENFORCED
 
 - API handlers and routes exist
 - app.py wired
-- 40 tests passing with PYTHONPATH=.
+- Backend tests: 40 defined, 28 passing, 12 blocked by missing python-docx dependency
 - multiple orchestrator versions present in repo
 - backend/models/ and backend/utils/ are empty
 - resume-saas serves as the migration validation harness, not the primary objective

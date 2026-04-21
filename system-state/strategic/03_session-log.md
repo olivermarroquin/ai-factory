@@ -4,6 +4,47 @@
 
 ---
 
+## 2026-04-21 — Knowledge capture and state correction (Claude Code in VS Code)
+
+**Duration:** ~2 hours (estimate)
+**Mode:** Documentation + state correction
+**Interface:** Claude Code in VS Code
+
+### What Happened
+- Drafted and committed retrospective state capture (2026-04-19 entry)
+- Drafted and committed resume-saas backend migration retro with step 14/15 pipeline investigation findings
+- Initialized second-brain/ as its own git repo (first commit: 20 files, all existing content + retro)
+- Updated second-brain/.gitignore with full Obsidian/macOS/editor artifact exclusions
+- Identified and corrected test-count inaccuracy in current-system-state.md (was ambiguous "40 tests", corrected to "40 defined, 28 passing, 12 blocked")
+- Identified stale state ambiguity as a Guardian-relevant issue
+
+### Decisions Made
+- State files will use explicit language: 'defined' / 'passing' / 'failing' / 'blocked' rather than bare counts
+- python-docx dependency blocker is noted as debt, not fixed in this session (defer until frontend work is underway or explicitly prioritized)
+- second-brain gets its own git repo, consistent with ai-factory and resume-saas architecture (no submodules — workspace root stays non-git for now)
+
+### Artifacts Produced
+- `second-brain/06_retros/2026-04-20_resume-saas-backend-migration-retro.md`
+- `second-brain/.gitignore`
+- `ai-factory/system-state/strategic/03_session-log.md` — 2026-04-19 baseline entry + this entry
+- `ai-factory/system-state/current-system-state.md` — test count corrected
+- Playbook prompts did NOT run this session — those are next
+
+### Key Insights
+- Retrospective captures reveal hidden state drift: the act of documenting exposed that current-system-state.md had language ambiguity that had been quietly miscommunicating status
+- Running pytest as part of the retro is valuable — objective verification beats cached assumptions
+- Step 14 pipeline failures (6/15 runs) were distributed across multiple stages (coder, planner, apply, reviewer, classification) — indicates model output inconsistency under same input, not a code-under-test issue
+- Step 15's 14 successive successful re-runs were deliberate iterative refinement, not error recovery — the pipeline has no mechanism to distinguish these, which is a real artifact trail gap
+
+### Next Session Should Start With
+- Playbook prompts: `second-brain/03_playbooks/frontend-nextjs-app-router-scaffold.md` (after scaffold phase completes) — but scaffold hasn't run yet, so the actual next task is the frontend scaffold itself
+- First action: scaffold `repos/resume-saas/frontend/` with Next.js 14 (App Router, TypeScript, Tailwind)
+
+### Open Questions For Next Session
+- Should python-docx be installed now to unblock the 12 tests, or deferred until frontend integration work touches resume parsing? (Likely: install when relevant.)
+
+---
+
 ## 2026-04-19 — Retrospective state capture (Claude Code in VS Code)
 
 **Duration:** N/A (retrospective summary)
@@ -58,6 +99,7 @@ system. Establishes a baseline for future session entries.
 - No workspace/CLAUDE.md with session protocol yet (a misnamed `CLAUDE .md` with a space exists)
 - No build-log.md in resume-saas/docs/ yet
 - Missing `python-docx` dependency blocks 12 resume API tests
+- `ai-factory/system-state/current-system-state.md` contains the string "40 tests" which was interpreted as "40 passing" when the reality is 40 defined with 12 blocked. This ambiguity suggests the state file needs stricter language conventions — state files should distinguish 'defined', 'passing', 'failing', and 'blocked' explicitly.
 
 ---
 
