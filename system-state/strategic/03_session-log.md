@@ -4,6 +4,56 @@
 
 ---
 
+## 2026-04-21 — Week 1 Execution Session (Claude.ai chat + Claude Code)
+
+**Duration:** ~ongoing
+**Mode:** Execution — spec writing, CLAUDE.md corrections, build-log setup
+**Interface:** Claude.ai web chat (strategic) + Claude Code in VS Code (execution)
+
+### What Happened
+- Read backend code (rewrite_routes.py, rewrite.py, rewrite_orchestrator_v5.py) to derive the actual /rewrite API contract.
+- Identified discrepancy between CLAUDE.md and real code: endpoint was at /rewrite, not /api/rewrite; API contract section described the wrong response shape.
+- Made 8 cross-cutting design decisions for the frontend MVP (captured in design decisions table of repos/resume-saas/docs/build-log.md).
+- Updated repos/resume-saas/CLAUDE.md: fixed API contract section, fixed spec-location pointer, updated Week 1 task order.
+- Created repos/resume-saas/docs/frontend-mvp-spec-v1.md as authoritative spec for Next.js scaffold.
+- Created repos/resume-saas/docs/build-log.md with design decisions table and first session entry.
+- Updated 02_current-focus.md and 01_current-strategy.md to reflect today's decisions and completions.
+
+### Decisions Made
+- Synchronous API for MVP (async deferred)
+- Client-side PDF/DOCX export for MVP (server-side deferred)
+- Paste-text only inputs for MVP (file upload, URL scrape deferred to v1.1)
+- Single-route state-machine UI (multi-route deferred)
+- /api URL prefix on all Flask blueprints
+- Proposal toggle regenerates right pane from scratch with single-level undo
+- Versioning kept in MVP, in-memory only
+- Hybrid proposal UI: list + diff highlights (inline popovers deferred)
+- ECS/Guardian extension to app-build workflow is premature; wait for 2+ data points
+
+### Artifacts Produced
+- repos/resume-saas/CLAUDE.md (edited)
+- repos/resume-saas/docs/frontend-mvp-spec-v1.md (new)
+- repos/resume-saas/docs/build-log.md (new)
+- ai-factory/system-state/strategic/02_current-focus.md (edited)
+- ai-factory/system-state/strategic/01_current-strategy.md (edited)
+- ai-factory/system-state/strategic/03_session-log.md (this entry)
+
+### Key Insights
+- The "frontend spec" process surfaced backend debt (orchestrator field-name mismatch with the spec) we wouldn't have caught otherwise. Speccing the frontend forced a close read of the backend contract.
+- Strategic state files drift silently during execution sessions. Need forcing function — adopted 1+3 pattern: session-end protocol asks Claude Code to drive state updates; end-of-chat deltas from strategic chat get pasted as one-shot update tasks.
+- Capturing design decisions in build-log "as work happens" is lighter weight than waiting for retros and produces better raw material for future playbooks.
+
+### Next Session Should Start With
+1. Apply /api URL prefix change in app.py + update affected tests (small backend task)
+2. Scaffold repos/resume-saas/frontend/ per docs/frontend-mvp-spec-v1.md (Next.js 14 App Router, TypeScript, Tailwind)
+3. Wire frontend to POST /api/rewrite and verify end-to-end
+
+### Open Questions For Next Session
+- Does repos/resume-saas/app.py belong at repo root or under backend/? (Structural cleanup, separate from scaffold.)
+- Orchestrator field-name mismatch with spec — audit after MVP ships.
+
+---
+
 ## 2026-04-21 — Knowledge capture session (Claude Code in VS Code)
 
 **Duration:** ~2 hours (estimate)
