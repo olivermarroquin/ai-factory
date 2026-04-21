@@ -5,29 +5,22 @@
 
 ## This Week's Objective
 
-Scaffold resume-saas frontend with Claude Code in VS Code. Create CLAUDE.md conventions, frontend spec, and working Next.js scaffold that can call the existing Flask backend.
+Scaffold resume-saas frontend and wire it end-to-end to the Flask backend. All core screens except the review/export UX are complete. Stage 4 (review screen + export) starts tomorrow and completes Week 1's core scope.
 
 ## In Progress
 
 ### Build
-- [ ] Create `repos/resume-saas/frontend/` directory contents with Next.js 14 (directory exists but empty: app/, components/, lib/)
-- [ ] Update repos/resume-saas/app.py to register all three blueprints with url_prefix="/api". Endpoint becomes POST /api/rewrite.
-- [ ] Update repos/resume-saas/tests/backend/ tests that hit /rewrite, /resume/parse, /jobs/* at root — move to /api/rewrite, /api/resume/parse, /api/jobs/*.
-- [x] Create `repos/resume-saas/docs/frontend-mvp-spec-v1.md` (3-screen spec)
-- [x] Create `repos/resume-saas/docs/build-log.md` (starts empty, Claude Code appends as work happens)
-- [ ] Install dependencies (Next.js, Tailwind, TypeScript) — package.json doesn't exist yet
-- [ ] Verify frontend can call existing backend `/api/rewrite` endpoint
-- [ ] Create `repos/resume-saas/docker-compose.yml` for local dev
+- [ ] Create `repos/resume-saas/docker-compose.yml` for local dev (post-Stage-4)
 
 ### Setup
 - [x] Set up strategic context files in `ai-factory/system-state/strategic/` (save all 6 files)
-- [ ] Save `workspace/CLAUDE.md` at workspace root (delete the misnamed `CLAUDE .md` with a space if it exists)
+- [x] workspace/CLAUDE.md at workspace root — updated with Session End Protocol trigger phrase and "Working with the Strategic Chat" section. The misnamed `CLAUDE .md` with a space was renamed. Note: workspace/CLAUDE.md versioning is deferred — file is on disk but not in any git repo. See 01_current-strategy.md open decisions and build-log Stage 1 deferral entry.
 - [x] Review and update `repos/resume-saas/CLAUDE.md` (already exists — compare with new version and merge)
 - [x] Upload strategic context files to Claude Project as knowledge
-- [ ] Test session start protocol in new execution chat
+- [x] Test session start protocol in new execution chat
 
-### Knowledge Capture (Ongoing Throughout Week)
-- [x] Append build log entries after each significant task (see Knowledge Capture Protocol in workspace/CLAUDE.md)
+### Knowledge Capture (Ongoing)
+Append build log entries after each significant task (see Knowledge Capture Protocol in workspace/CLAUDE.md). All per-stage entries captured for Stages 1–3.5 today.
 
 ## Completed This Week
 
@@ -46,31 +39,52 @@ Scaffold resume-saas frontend with Claude Code in VS Code. Create CLAUDE.md conv
 - [x] Created repos/resume-saas/docs/frontend-mvp-spec-v1.md (authoritative spec for Next.js scaffold)
 - [x] Created repos/resume-saas/docs/build-log.md (with design decisions table + Week 1 setup session entry)
 
+### Week 1 Build Stages (2026-04-21)
+- [x] Stage 1: Next.js 16.2 scaffold, Tailwind v4, TypeScript strict, clean dev server
+- [x] Stage 2: Frontend state management layer — types, actions, reducer, AppContext, applyProposals algorithm
+- [x] Stage 2.5: Backend dependency manifest (requirements.txt), fresh .venv, /api url_prefix on all blueprints, 40/40 tests passing in clean venv
+- [x] Stage 3: Next.js proxy rewrite, lib/api.ts, InputScreen + ProcessingScreen + ErrorBanner + AppShell, AppProvider wired into root layout, README dev-server commands documented
+- [x] Stage 3.5: Fixed OpenAI strict Structured Outputs schema bug (narrative nullable + required). Full end-to-end round trip verified: real resume+JD returned 7 real proposals through the full stack.
+
 ## Blocked / Waiting On
-(Nothing blocking)
+
+Nothing blocking. Ready to start Stage 4 tomorrow. No blockers.
 
 ## Next Up (After Current Tasks)
 
+### Stage 4 (Tomorrow — still Week 1)
+
+Stage 4: Implement real review screen. Completes the originally-planned Week 2 screen work, one week early.
+
+- [ ] Install jspdf and docx libraries
+- [ ] Create components/ReviewScreen.tsx (composes sub-panes)
+- [ ] Create components/OriginalPane.tsx (read-only left pane)
+- [ ] Create components/ProposedPane.tsx (editable center pane with diff highlighting)
+- [ ] Create components/ProposalsList.tsx + ProposalCard.tsx (right pane, toggles)
+- [ ] Create components/VersionSidebar.tsx (saved versions UI)
+- [ ] Create components/ExportMenu.tsx (PDF/DOCX/Clipboard)
+- [ ] Create lib/exportPdf.ts and lib/exportDocx.ts wrappers
+- [ ] Wire AppShell's "review" case to render ReviewScreen instead of the Stage 3 placeholder
+- [ ] Live end-to-end test: submit, toggle proposals, save version, export each format
+
 ### Week 2
-- Build Screen 1: Input form component (`ResumeForm.tsx`)
-- Build Screen 2: Processing state component
-- Build Screen 3: Result display + download button (`ResumePreview.tsx`, `DownloadButton.tsx`)
-- Wire form → API → response flow
-- **Playbook capture:** Write `second-brain/03_playbooks/frontend-nextjs-app-router-scaffold.md` after scaffold phase completes
-- **Parallel (evenings):** Build VIS MVP (`ai-factory/tools/vis/process_source.py`)
+- Integration tests, error handling refinement
+- Preparing for deployment
+- **Playbook capture:** Write `second-brain/03_playbooks/frontend-nextjs-app-router-scaffold.md` after Stage 4 ships (Stage 4 completes the scaffold-to-working-app arc and gives richer material)
+- **Parallel (evenings):** Start VIS MVP (`ai-factory/tools/vis/process_source.py`) — originally Week 2-3, still on track
 
 ### Week 3
 - Frontend ↔ backend integration tests
-- End-to-end flow tests (input → API → resume generation → download)
-- Error handling and user feedback
-- **Playbook capture:** Write `second-brain/03_playbooks/backend-flask-blueprint-integration.md` after integration works
+- End-to-end flow tests (input → API → resume generation → download → edit → save → re-export)
+- Error handling refinement
+- **Playbook capture:** Write `second-brain/03_playbooks/backend-flask-blueprint-integration.md` after integration tests land
 - **Parallel:** Build `weekly_synthesis.py` for VIS
 - Start daily VIS processing (2-3 sources/day)
 
 ### Week 4
 - Deploy frontend to Vercel
 - Deploy backend to Railway
-- Configure CORS, environment variables
+- Configure environment variables
 - Basic production smoke tests
 - Use resume-saas for 5 real job applications
 - **Playbook capture:** Write `second-brain/03_playbooks/deployment-vercel-railway.md` after first successful deploy
@@ -111,5 +125,7 @@ By end of Week 4, the following artifacts should exist in `second-brain/`:
 4. `06_retros/2026-MM-DD_resume-saas-mvp-retro.md`
 
 Plus ongoing entries in `repos/resume-saas/docs/build-log.md`.
+
+Note: At current pace (Stages 1 through 3.5 all completed in one day of Week 1), the scaffold playbook is writable after Stage 4 ships tomorrow. Integration and deployment playbooks still map to their respective weeks. Retro still post-MVP-deployment.
 
 These artifacts are what will eventually become the `app-build` workflow in ai-factory (which already has an empty `ai-factory/workflows/app-build/` directory waiting for content). Capturing them during resume-saas is the foundation for automating app #2 and beyond.

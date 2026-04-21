@@ -1,7 +1,7 @@
 # Active References
 
-**Last Updated:** 2026-04-20
-**Current Focus:** Building resume-saas frontend MVP (Week 1-4)
+**Last Updated:** 2026-04-21 (evening)
+**Current Focus:** Building resume-saas frontend MVP — Stage 4 (review screen + export) is next. MVP plumbing end-to-end verified as of 2026-04-21; review/export UX remains.
 
 ---
 
@@ -21,10 +21,12 @@ All paths are relative to workspace root.
 - `ai-factory/docs/rewrite-api-spec-v1.md` — API contract for the rewrite endpoint (note: lives in ai-factory/docs/, not resume-saas)
 - `repos/resume-saas/docs/overview.md` — Existing overview document
 - `repos/resume-saas/docs/mvp-scope.md` — Existing scope document
-- `repos/resume-saas/docs/frontend-mvp-spec-v1.md` — Frontend architecture (to be created in Week 1)
-- `repos/resume-saas/CLAUDE.md` — Repo conventions for Claude Code (already exists — review/update in Week 1)
+- `repos/resume-saas/docs/frontend-mvp-spec-v1.md` — Frontend architecture. CREATED and authoritative. Stage 4 work codes against this spec.
+- `repos/resume-saas/CLAUDE.md` — Repo conventions for Claude Code. Updated 2026-04-21 with correct API contract and task order.
 - `repos/resume-saas/backend/` — Existing Flask backend to integrate with
 - `second-brain/02_ventures/resume-saas/resume-saas-overview.md` — Venture overview
+- `repos/resume-saas/docs/build-log.md` — Running record of build work. Design decisions table is the source of truth for cross-cutting choices made during Stages 1–3.5. Stage 4 decisions append here as work happens.
+- `repos/resume-saas/frontend/lib/applyProposals.ts` — The proposal-application algorithm. Stage 4 ProposedPane component exercises this for real for the first time; review its section-detection heuristic before depending on it.
 
 ### For building VIS MVP (Week 2-3):
 - `ai-factory/tools/vis/README.md` — Tool documentation (to be created)

@@ -1,6 +1,6 @@
 # Current Strategy
 
-**Last Updated:** 2026-04-21
+**Last Updated:** 2026-04-21 (evening)
 
 ## Active Strategy: Portfolio-First Build Approach
 
@@ -8,7 +8,7 @@ Build a portfolio of proven apps and automations, then offer clients fast deploy
 
 ## Build Sequence
 
-1. **resume-saas MVP** (Weeks 1-4) — First portfolio piece
+1. **resume-saas MVP** (Weeks 1-4) — First portfolio piece. Stages 1–3.5 shipped 2026-04-21. MVP end-to-end plumbing verified. Stage 4 (review screen + export) is next; then deploy. Ahead of original week-by-week plan.
 2. **Video Intelligence System automated tool** (Weeks 2-3, parallel) — Intelligence intake for future app ideas
 3. **App #2** (Weeks 5-8) — Chosen from VIS-ranked recommendations
 4. **App #3** (Weeks 9-12) — Continued portfolio growth
@@ -49,7 +49,9 @@ Build a portfolio of proven apps and automations, then offer clients fast deploy
 - Whether to expand operator tool after resume-saas ships (reassess Week 5)
 - Second portfolio app: wait for VIS output in Week 4 before deciding
 - Client outreach strategy: decide after 3 portfolio pieces exist
-- Orchestrator field-name audit: rewrite_orchestrator_v5.py prompts model with target/action/new_line but rewrite API spec defines section/op. Transform must happen somewhere between model output and API response. Audit after frontend MVP ships.
+- Orchestrator field-name audit: partial — the strict-mode required/nullable issue was resolved in Stage 3.5. A separate question remains: the orchestrator's model prompt uses the words target/action/new_line in plain text while the spec uses section/op. Since OpenAI Structured Outputs enforces the schema regardless of prompt wording, this is cosmetic/clarity debt, not a bug. Revisit post-MVP.
+- Stage 4 PDF library choice: jspdf vs pdf-lib vs react-pdf. jspdf was named in the spec and build-log design-decisions as the MVP choice, but a quick comparison of output quality and API ergonomics should happen at Stage 4 start before committing.
+- Stage 4 diff visualization approach: text-diff library (e.g., diff-match-patch) for line/word-level diff, vs. per-op highlighting driven by the proposal op types (REPLACE_LINE, ADD_LINE, DELETE_LINE, REPLACE_PHRASE). Per-op is simpler; text-diff is more general. Decide at Stage 4 start.
 - backend/app.py location: currently at repos/resume-saas/app.py (repo root). Consider moving under backend/ for structural consistency. Decide during or after backend /api prefix change.
 - Workspace-level git tracking: workspace/CLAUDE.md lives outside any git repo. Deferred 2026-04-21. Revisit when working from a second machine, collaborating, or when more workspace-level files need tracking.
 
@@ -73,7 +75,7 @@ Build a portfolio of proven apps and automations, then offer clients fast deploy
 - Full Context Engine automation — manual handoffs work fine at current scale
 - Semantic Retrieval Layer — no knowledge corpus large enough to need it
 - Full Video Intelligence pipeline (6-stage) — MVP version is enough
-- Operator tool expansion — wait until resume-saas teaches workflow patterns
+- Operator tool expansion — wait until resume-saas teaches workflow patterns. Confirmed deferred 2026-04-21 during strategic review. Reassess Week 5.
 - Multi-agent coordination — not useful until Level 3 is real
 
 ## Revenue Path
