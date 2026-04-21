@@ -51,6 +51,7 @@ Build a portfolio of proven apps and automations, then offer clients fast deploy
 - Client outreach strategy: decide after 3 portfolio pieces exist
 - Orchestrator field-name audit: rewrite_orchestrator_v5.py prompts model with target/action/new_line but rewrite API spec defines section/op. Transform must happen somewhere between model output and API response. Audit after frontend MVP ships.
 - backend/app.py location: currently at repos/resume-saas/app.py (repo root). Consider moving under backend/ for structural consistency. Decide during or after backend /api prefix change.
+- Workspace-level git tracking: workspace/CLAUDE.md lives outside any git repo. Deferred 2026-04-21. Revisit when working from a second machine, collaborating, or when more workspace-level files need tracking.
 
 ## Capability Level Roadmap
 
