@@ -11,17 +11,19 @@ Scaffold resume-saas frontend with Claude Code in VS Code. Create CLAUDE.md conv
 
 ### Build
 - [ ] Create `repos/resume-saas/frontend/` directory contents with Next.js 14 (directory exists but empty: app/, components/, lib/)
-- [ ] Create `repos/resume-saas/docs/frontend-mvp-spec-v1.md` (3-screen spec)
-- [ ] Create `repos/resume-saas/docs/build-log.md` (starts empty, Claude Code appends as work happens)
+- [ ] Update repos/resume-saas/app.py to register all three blueprints with url_prefix="/api". Endpoint becomes POST /api/rewrite.
+- [ ] Update repos/resume-saas/tests/backend/ tests that hit /rewrite, /resume/parse, /jobs/* at root — move to /api/rewrite, /api/resume/parse, /api/jobs/*.
+- [x] Create `repos/resume-saas/docs/frontend-mvp-spec-v1.md` (3-screen spec)
+- [x] Create `repos/resume-saas/docs/build-log.md` (starts empty, Claude Code appends as work happens)
 - [ ] Install dependencies (Next.js, Tailwind, TypeScript) — package.json doesn't exist yet
 - [ ] Verify frontend can call existing backend `/api/rewrite` endpoint
 - [ ] Create `repos/resume-saas/docker-compose.yml` for local dev
 
 ### Setup
-- [ ] Set up strategic context files in `ai-factory/system-state/strategic/` (save all 6 files)
+- [x] Set up strategic context files in `ai-factory/system-state/strategic/` (save all 6 files)
 - [ ] Save `workspace/CLAUDE.md` at workspace root (delete the misnamed `CLAUDE .md` with a space if it exists)
-- [ ] Review and update `repos/resume-saas/CLAUDE.md` (already exists — compare with new version and merge)
-- [ ] Upload strategic context files to Claude Project as knowledge
+- [x] Review and update `repos/resume-saas/CLAUDE.md` (already exists — compare with new version and merge)
+- [x] Upload strategic context files to Claude Project as knowledge
 - [ ] Test session start protocol in new execution chat
 
 ### Knowledge Capture (Ongoing Throughout Week)
@@ -38,6 +40,11 @@ Scaffold resume-saas frontend with Claude Code in VS Code. Create CLAUDE.md conv
 - [x] Wrote `second-brain/03_playbooks/legacy-cli-to-saas-backend-conversion.md`
 - [x] Initialized `second-brain/` as git repository
 - [x] Corrected test count language in `current-system-state.md` and session log
+
+### Week 1 Build Setup (2026-04-21)
+- [x] Updated repos/resume-saas/CLAUDE.md (API contract corrected, task order fixed, spec-location pointer fixed)
+- [x] Created repos/resume-saas/docs/frontend-mvp-spec-v1.md (authoritative spec for Next.js scaffold)
+- [x] Created repos/resume-saas/docs/build-log.md (with design decisions table + Week 1 setup session entry)
 
 ## Blocked / Waiting On
 (Nothing blocking)
@@ -85,6 +92,7 @@ Scaffold resume-saas frontend with Claude Code in VS Code. Create CLAUDE.md conv
 
 ## Key Reminders
 
+- When a cross-cutting design decision is made during a build session, capture it in repos/<venture>/docs/build-log.md under "Design decisions" immediately. These accumulate into playbooks after the venture ships.
 - When in doubt between "polish the factory" and "ship the product" — ship
 - When in doubt between "capture knowledge" and "skip it" — capture
 - Do not route frontend work through the migration pipeline
