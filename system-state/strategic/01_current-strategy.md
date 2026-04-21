@@ -1,6 +1,6 @@
 # Current Strategy
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-04-21
 
 ## Active Strategy: Portfolio-First Build Approach
 
@@ -34,6 +34,14 @@ Build a portfolio of proven apps and automations, then offer clients fast deploy
 | VIS code location | `ai-factory/tools/vis/` | It's a tool in the factory, not a separate project |
 | VIS seed channels | @nicksaraev, @nateherk, @NetworkChuck, @danmartell, @LiamOttley | Starting intelligence sources |
 | Frontend state management | React Context + hooks for MVP | Add Zustand/Redux only if complexity demands |
+| API call pattern (MVP) | Synchronous POST /api/rewrite, no job polling | LLM returns in 10-30s; within browser/proxy timeout. Async adds infrastructure that's reversible if needed later. |
+| PDF/DOCX export (MVP) | Client-side via jspdf and docx libraries | Lighter infrastructure. Server-side is v1.1 fallback if output quality insufficient. |
+| Input format (MVP) | Paste-text only for resume and JD | File parsing (PDF, DOCX) and URL scraping are multi-day scope expansions. Backend already accepts strings. v1.1 work. |
+| Frontend routing | Single route at /, state-machine phase field drives screen transitions | Persisting in-memory state across route changes adds complexity without user benefit. Bookmarkable URLs are non-goal. |
+| Backend URL prefix | All Flask blueprints registered with url_prefix="/api" | Namespaces API routes from future frontend/static/health routes. One-line change. Matches convention in docs. |
+| Proposal toggle behavior | Regenerate right pane from scratch on toggle; discard freeform edits with single-level undo | Simplest to implement and reason about. One-level undo covers realistic "oops" case. Multi-level undo is scope creep. |
+| Versioning (MVP) | In-memory only; v1 = original, v2+ = user saves; lost on refresh | Lightweight without persistence. Useful for tailor-to-multiple-jobs workflow. |
+| Proposal UI pattern | Hybrid: list in right pane as control surface, diff highlights in center pane as display surface | Pure list obscures effect on text. Inline popovers handle ADD_LINE poorly. Inline popovers deferred to v1.1. |
 
 ## Open Decisions (To Resolve As They Come Up)
 
@@ -41,6 +49,8 @@ Build a portfolio of proven apps and automations, then offer clients fast deploy
 - Whether to expand operator tool after resume-saas ships (reassess Week 5)
 - Second portfolio app: wait for VIS output in Week 4 before deciding
 - Client outreach strategy: decide after 3 portfolio pieces exist
+- Orchestrator field-name audit: rewrite_orchestrator_v5.py prompts model with target/action/new_line but rewrite API spec defines section/op. Transform must happen somewhere between model output and API response. Audit after frontend MVP ships.
+- backend/app.py location: currently at repos/resume-saas/app.py (repo root). Consider moving under backend/ for structural consistency. Decide during or after backend /api prefix change.
 
 ## Capability Level Roadmap
 
@@ -54,6 +64,7 @@ Build a portfolio of proven apps and automations, then offer clients fast deploy
 
 ## Things I Am Deliberately NOT Building Right Now
 
+- ECS/Guardian extension to app-build workflow — premature until resume-saas and app #2 provide real data points on app-build patterns. Current ECS/Guardian focus stays on migration workflow.
 - ECA (Executive Command Assistant) — Level 4 work, too early
 - PM Agent Layer — Level 4 work, too early
 - Agent Capability Engine — needs real agents running first
