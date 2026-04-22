@@ -1,26 +1,48 @@
 # Current Focus
 
-**Last Updated:** 2026-04-21
+**Last Updated:** 2026-04-22
 **Current Week:** Week 1 of resume-saas MVP build
 
 ## This Week's Objective
 
-Scaffold resume-saas frontend and wire it end-to-end to the Flask backend. All core screens except the review/export UX are complete. Stage 4 (review screen + export) starts tomorrow and completes Week 1's core scope.
+Scaffold resume-saas frontend and wire it end-to-end to the Flask backend. Stages 1 through 3.5 shipped 2026-04-21. Stage 4a substantially complete as of 2026-04-22 — review screen three-pane layout, proposal cards, Toggle All, multi-level undo, Clear all edits, applyProposals defensive fallbacks, layout fixes all shipped. BLOCKED on freeform editing in the middle pane: contentEditable approach proved structurally unfit. Next session starts with Slate.js migration of ProposedPane per `repos/resume-saas/docs/stage-4a-slate-migration-plan.md`.
 
 ## In Progress
 
 ### Build
+- [ ] Stage 4a Slate migration — replace ProposedPane contentEditable surface with Slate.js editor. Plan doc at `repos/resume-saas/docs/stage-4a-slate-migration-plan.md`. Estimated 2-4 hours. Read plan doc + Slate quickstart BEFORE writing execution prompt. This is the blocker for completing Stage 4a.
 - [ ] Create `repos/resume-saas/docker-compose.yml` for local dev (post-Stage-4)
 
 ### Setup
-- [x] Set up strategic context files in `ai-factory/system-state/strategic/` (save all 6 files)
-- [x] workspace/CLAUDE.md at workspace root — updated with Session End Protocol trigger phrase and "Working with the Strategic Chat" section. The misnamed `CLAUDE .md` with a space was renamed. Note: workspace/CLAUDE.md versioning is deferred — file is on disk but not in any git repo. See 01_current-strategy.md open decisions and build-log Stage 1 deferral entry.
-- [x] Review and update `repos/resume-saas/CLAUDE.md` (already exists — compare with new version and merge)
-- [x] Upload strategic context files to Claude Project as knowledge
-- [x] Test session start protocol in new execution chat
+All items completed. Strategic context system, workspace/CLAUDE.md, repos/resume-saas/CLAUDE.md all updated and operational.
 
 ### Knowledge Capture (Ongoing)
-Append build log entries after each significant task (see Knowledge Capture Protocol in workspace/CLAUDE.md). All per-stage entries captured for Stages 1–3.5 today.
+Build-log entries captured throughout Stage 4a session 2026-04-22 including design decisions (11 rows), meta-lessons (2 entries — intake-gap + contentEditable-dead-end).
+
+## Completed 2026-04-22 (Stage 4a full-day session)
+
+### Stage 4a implementation
+- [x] Stage 4a Section 1-6: OriginalPane, ProposedPane v1, ProposalCard, ProposalsList, ReviewScreen, AppShell review case wired
+- [x] Fix 1a (data layer): multi-level undo stack, TOGGLE_ALL action, RESTORE_ORIGINAL clears selections + stack
+- [x] Fix 1b (ProposedPane contentEditable rewrite) — multiple iterations, ultimately insufficient
+- [x] Fix 2: applyProposals defensive normalization (synonym-aware section detection, bullet/whitespace normalization)
+- [x] Fix 4: applyProposals multi-line before[0] handling + REPLACE_LINE auto-convert to phrase for sub-line edits (≥30% ratio threshold)
+- [x] Fix 5.2: layout regression fix (body overflow-hidden, ReviewScreen h-full, grid-rows-1, min-h-0 on cells) — panes now scroll internally
+- [x] Option A focus fix: remove hadFocus guard, always reset scroll/cursor/focus on toggle
+- [x] Fix 6 Option C: contenteditable="plaintext-only" attempt (partial fix, insufficient)
+- [x] Fix 6.1: line-div cursor walker (resolved Enter positioning, but backspace still broken)
+
+### Strategic artifacts
+- [x] build-log.md: 11 new design-decisions table rows covering Stage 4a decisions
+- [x] build-log.md: Meta-lessons section established, 2 entries (intake-gap mid-build, contentEditable-dead-end)
+- [x] frontend-mvp-spec-v1.md: revised for single-pane design + multi-level undo + Toggle All + known applyProposals limitations
+- [x] second-brain/05_reference/venture-intake-checklist.md: 15-question intake checklist seeded from resume-saas lessons
+- [x] second-brain/06_retros/2026-04-22_resume-saas-intake-gap-mid-build.md: mid-build retro on end-state vision gap
+- [x] 01_current-strategy.md: Locked Decisions (5 new), Open Decisions (2 new), Things Not Building (4 new v1.1 items)
+- [x] stage-4a-slate-migration-plan.md: full handoff document for tomorrow's Slate work
+
+### Git hygiene
+- [x] 28 commits across resume-saas repo spanning implementation, fixes, docs, and orphan-commit cleanup
 
 ## Completed This Week
 
@@ -48,24 +70,31 @@ Append build log entries after each significant task (see Knowledge Capture Prot
 
 ## Blocked / Waiting On
 
-Nothing blocking. Ready to start Stage 4 tomorrow. No blockers.
+Stage 4a completion blocked on Slate migration of ProposedPane. Execution path is clear (plan doc ready), but requires fresh session — not a same-day continuation. Next session should start with reading `repos/resume-saas/docs/stage-4a-slate-migration-plan.md` end-to-end.
+
+Stage 4b (versioning + export) blocked on Stage 4a completion.
 
 ## Next Up (After Current Tasks)
 
-### Stage 4 (Tomorrow — still Week 1)
+### Stage 4a completion (Next session — still Week 1/2)
 
-Stage 4: Implement real review screen. Completes the originally-planned Week 2 screen work, one week early.
+- [ ] Read `repos/resume-saas/docs/stage-4a-slate-migration-plan.md` end-to-end (~10 min)
+- [ ] Read Slate's "Installing Slate" + "The Basics" walkthroughs (~20 min)
+- [ ] Validate the proposed implementation approach against Slate's idioms; adjust if needed
+- [ ] Install `slate` and `slate-react` dependencies
+- [ ] Rewrite `components/ProposedPane.tsx` using Slate
+- [ ] Adapt or remove `lib/diffPreview.ts` per migration plan
+- [ ] Live end-to-end test: all 15 original Stage 4a checks PLUS 7 Enter tests PLUS 3 backspace tests (test criteria in plan doc)
+- [ ] Update `docs/frontend-mvp-spec-v1.md` to reflect Slate as editor implementation
+- [ ] Build-log entry: "Stage 4a Slate migration complete" with notes on Slate idiom adjustments
 
-- [ ] Install jspdf and docx libraries
-- [ ] Create components/ReviewScreen.tsx (composes sub-panes)
-- [ ] Create components/OriginalPane.tsx (read-only left pane)
-- [ ] Create components/ProposedPane.tsx (editable center pane with diff highlighting)
-- [ ] Create components/ProposalsList.tsx + ProposalCard.tsx (right pane, toggles)
+### Stage 4b (After Stage 4a Slate migration completes)
+
 - [ ] Create components/VersionSidebar.tsx (saved versions UI)
-- [ ] Create components/ExportMenu.tsx (PDF/DOCX/Clipboard)
-- [ ] Create lib/exportPdf.ts and lib/exportDocx.ts wrappers
-- [ ] Wire AppShell's "review" case to render ReviewScreen instead of the Stage 3 placeholder
-- [ ] Live end-to-end test: submit, toggle proposals, save version, export each format
+- [ ] Create components/ExportMenu.tsx (PDF/DOCX/Clipboard dropdown)
+- [ ] Create lib/exportPdf.ts (@react-pdf/renderer wrapper)
+- [ ] Create lib/exportDocx.ts (docx library wrapper)
+- [ ] Live end-to-end test: save version, export PDF, export DOCX, clipboard copy
 
 ### Week 2
 - Integration tests, error handling refinement
