@@ -1,6 +1,6 @@
 # Current Strategy
 
-**Last Updated:** 2026-04-21 (evening)
+**Last Updated:** 2026-04-22
 
 ## Active Strategy: Portfolio-First Build Approach
 
@@ -42,6 +42,9 @@ Build a portfolio of proven apps and automations, then offer clients fast deploy
 | Proposal toggle behavior | Regenerate right pane from scratch on toggle; discard freeform edits with single-level undo | Simplest to implement and reason about. One-level undo covers realistic "oops" case. Multi-level undo is scope creep. |
 | Versioning (MVP) | In-memory only; v1 = original, v2+ = user saves; lost on refresh | Lightweight without persistence. Useful for tailor-to-multiple-jobs workflow. |
 | Proposal UI pattern | Hybrid: list in right pane as control surface, diff highlights in center pane as display surface | Pure list obscures effect on text. Inline popovers handle ADD_LINE poorly. Inline popovers deferred to v1.1. |
+| PDF export library (MVP) | @react-pdf/renderer (client-side) | Prioritizes export quality without forcing a library rewrite when pushing quality later. Declarative model handles pagination/typography/spacing. Bundle cost (~600kb over jspdf) acceptable given priority. pdf-lib rejected (optimized for modifying existing PDFs, not generating). |
+| PDF template (MVP) | Minimal — single column, Helvetica, heading + body hierarchy, no structured header block | Frontend holds resume as one string; richer template requires parsing section boundaries, which is data-model scope creep. Minimal renders plain text cleanly. Richer template is v1.1, gated on introducing structured resume data. |
+| Product framing (v1 vs v2) | v1 = AI proposal-review tool for resume tailoring. v2 = format-preserving resume editor (DOCX/PDF upload, format-intact export). | End-state vision is format preservation (upload own resume → apply proposals → download with original formatting). MVP cannot deliver this (paste-text discards formatting at input). Path C: ship MVP with honest framing; validate proposal-flow usefulness; invest in format preservation post-launch with real data. |
 
 ## Open Decisions (To Resolve As They Come Up)
 
@@ -54,6 +57,7 @@ Build a portfolio of proven apps and automations, then offer clients fast deploy
 - Stage 4 diff visualization approach: text-diff library (e.g., diff-match-patch) for line/word-level diff, vs. per-op highlighting driven by the proposal op types (REPLACE_LINE, ADD_LINE, DELETE_LINE, REPLACE_PHRASE). Per-op is simpler; text-diff is more general. Decide at Stage 4 start.
 - backend/app.py location: currently at repos/resume-saas/app.py (repo root). Consider moving under backend/ for structural consistency. Decide during or after backend /api prefix change.
 - Workspace-level git tracking: workspace/CLAUDE.md lives outside any git repo. Deferred 2026-04-21. Revisit when working from a second machine, collaborating, or when more workspace-level files need tracking.
+- Product copy / landing-page framing: when the MVP ships, the public framing needs to match Path C — "AI proposal generator for resume tailoring" rather than implying format-preserving editing. Decide at deploy time (Week 4). Not a code decision; a positioning decision.
 
 ## Capability Level Roadmap
 
@@ -67,6 +71,7 @@ Build a portfolio of proven apps and automations, then offer clients fast deploy
 
 ## Things I Am Deliberately NOT Building Right Now
 
+- Format-preserving resume export (DOCX/PDF upload → proposal application → format-intact output) — this is the v2 product vision but building it now would defer MVP ship 3-4 weeks before proposal-review-flow usefulness has been validated. Revisit after MVP ships and real usage data exists. Trigger to revisit: (a) consistent user feedback that plain-text export is unusable, OR (b) you've used the MVP for 5+ real job applications and the missing format preservation is the top pain point.
 - ECS/Guardian extension to app-build workflow — premature until resume-saas and app #2 provide real data points on app-build patterns. Current ECS/Guardian focus stays on migration workflow.
 - ECA (Executive Command Assistant) — Level 4 work, too early
 - PM Agent Layer — Level 4 work, too early
