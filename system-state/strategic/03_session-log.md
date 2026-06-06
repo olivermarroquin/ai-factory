@@ -4,6 +4,153 @@
 
 ---
 
+## 2026-06-06 — Website-factory Phase 0 intel complete (Claude Code)
+
+**Duration:** ~2.5 hours
+**Mode:** Research + data collection + analysis
+**Interface:** Claude Code
+
+### What Happened
+- Spawned [F1] website-factory Phase 0 intel chat from handoff
+- Executed Opening Protocol (tracker pass 133) + all 6 tasks + Closing Protocol (pass 134)
+- Task 2 (priority): EV + S&H Core-30 per-city keyword-difficulty pass via DataForSEO Labs — per-city `location_name`, search volume + KD + local-pack spot-checks. Built demand-ranked build-order tables for both clients (EV 17 unbuilt, S&H 13 unbuilt)
+- Task 1: Core Web Vitals for AJ Long — desktop 96-98, mobile 75-92 (beatable target)
+- Task 3: Ranking monitor — 37 new AJ Long URLs now ranking (all page 3+); window narrowing
+- Task 4: Redirect map — 22 old→new 308 entries across 3 redirect patterns
+- Task 5: HousecallPro embed — static org-level token, `openModalWithParams()` API exists but unused = pre-fill opportunity
+- Task 6: Blog taxonomy — 254 posts categorized into 13 topic clusters
+- Peer-review caught stale live-baseline in build-order tables (S&H 16 live not 1, EV 12 live) — corrected
+- Program handoff data-to-verify: 5/6 checked off
+
+### Decisions Made
+- Build-order for both clients now ranked by city head-term demand (not original sequential order)
+- KD 0-4 across all cities = green-light signal for local SEO
+- Recommend monthly AJ Long ranking monitor as scheduled task
+- S&H Phase 2 hubs C1-C4 all triggered (16 live pages = 4 services × 4 cities)
+
+### Artifacts Produced
+- `aj-long-teardown/data/ev-sh-keyword-priority.md` — prioritized build-order tables
+- `aj-long-teardown/data/dfs-ev-sh-kw-raw.json` — raw search volume + KD data
+- `aj-long-teardown/data/dfs-kw-difficulty.json` — keyword difficulty scores
+- `aj-long-teardown/data/dfs-pagespeed-ajlong.json` — Lighthouse CWV data
+- `aj-long-teardown/data/dfs-ranked-keywords-2026-06-05.json` — ranking monitor snapshot
+- `aj-long-teardown/data/redirect-map.tsv` — 22-entry old→new map
+- `aj-long-teardown/data/blog-topic-taxonomy.md` — 13-cluster blog taxonomy
+- Teardown §26-§29 appended
+- Program handoff data-to-verify list updated
+- Tracker pass 134, handoff consumed, event-log rows appended
+
+### Key Insights
+- All service×city long-tails below Google Ads reporting threshold — normal for hyperlocal; city head-term volume is the proxy for demand
+- AJ Long's mobile CWV (75-92) is the beatable benchmark; their CLS=0 is the bar to match
+- 37 new AJ Long URLs ranking in under a month = indexation transition is real but still page 3+
+- HousecallPro has `openModalWithParams()` for per-page pre-fill that AJ Long doesn't use — free conversion advantage
+
+### Next Session Should Start With
+- [F2] gate-peer-reviewer Build wave 4 (autonomous page-build review) or [F3] page-factory reusability hardening — whichever operator prioritizes
+- Wire AJ Long ranking monitor as monthly scheduled task
+- S&H wave 2 research (5 city briefs for Alexandria/Stafford/Springfield/Burke/Lorton)
+
+### Open Questions For Next Session
+- Should the AJ Long ranking monitor fire as a Claude Code scheduled task or a manual monthly re-run?
+- S&H Phase 2 category hubs (C1-C4) are all triggered — build them before or after wave 2 city pages?
+
+---
+
+## 2026-04-22 — Stage 4a full-day session: review screen shipped, Slate migration decided (Claude.ai chat + Claude Code)
+
+**Duration:** ~14 hours
+**Mode:** Execution (heavy) + strategic redesign mid-session + knowledge capture
+**Interface:** Claude.ai strategic chat + Claude Code in VS Code
+
+### What Happened — Strategic Summary
+
+Today was the longest session to date and the first with a major mid-session architectural pivot. Stage 4a started with a clean plan (three-pane review screen, per-op diff highlighting, single-level undo, client-side export deferred to 4b) and ended with Stage 4a substantially complete but blocked on a full component rewrite via Slate.js for the freeform editor in ProposedPane.
+
+Three narrative arcs:
+
+**Arc 1 — Stage 4a planning and implementation.** Stage 4 split into 4a (three panes + toggles + diff) and 4b (versioning + export). PDF library decision finalized as @react-pdf/renderer. Stage 4a built in sections 1-6 (OriginalPane, ProposedPane, ProposalCard, ProposalsList, ReviewScreen, AppShell wiring). Initial live test passed 12 of 15 checks.
+
+**Arc 2 — Bug triage and review-screen redesign.** Three bug classes surfaced during live test: REPLACE_LINE indentation loss, applyProposals heuristic failures on real resume headers, and UX confusion with two stacked text surfaces. Redesigned review screen mid-session: single contentEditable pane with inline highlighting, multi-level undo with TOGGLE_ALL action, "Clear all edits and selections" replacing "Restore original." Spec revised (10 edits). Five fix rounds landed: Fix 1a (data layer), Fix 1b (contentEditable pane), Fix 2 (applyProposals normalization), Fix 4 (multi-line before + REPLACE_LINE-to-phrase conversion), Fix 5/5.1/5.2 (layout regression), Option A (focus fix).
+
+**Arc 3 — contentEditable dead end and Slate decision.** Fix 6 (plaintext-only contentEditable) and Fix 6.1 (line-div cursor walker) each resolved one bug and surfaced another. Diagnostic instrumentation added, revealed root cause: React and Chrome's contentEditable cannot co-own the DOM. Every fix patches a symptom of the divergence; none addresses the divergence itself. Slate.js chosen as replacement (over Lexical, TipTap, CodeMirror) for bundle size, React-native API, element-type styling fit, v1.1 inline-popover roadmap compatibility. Decision made to stop for the night and execute Slate migration with fresh eyes rather than push through.
+
+### Decisions Made — Strategic Level
+
+Non-trivial cross-cutting decisions locked today (all captured in 01_current-strategy.md Locked Decisions + build-log design-decisions table):
+
+- Stage 4 split into 4a (three-pane review) and 4b (versioning + export)
+- PDF library: @react-pdf/renderer, not jspdf or pdf-lib (quality over bundle size)
+- PDF template: minimal single-column Helvetica for MVP, richer templates v1.1
+- Product framing Path C: v1 = AI proposal-review tool, v2 = format-preserving resume editor
+- Diff visualization: per-op highlighting, not text-diff library
+- Review-screen redesign: single contentEditable pane with multi-level undo, TOGGLE_ALL action, Clear all edits and selections
+- Toggle UX: scroll stays, cursor to start of text, focus preserved
+- Fix 4 threshold: REPLACE_LINE auto-converts to phrase when before[0] is ≥30% of line length (captures sub-line edits without breaking short-substring cases)
+- Slate.js migration for ProposedPane (structural replacement, not a patch)
+
+Deferrals captured in 01_current-strategy.md under "Things Not Building":
+- Format-preserving resume export (v2 vision)
+- Pane scroll alignment in review screen
+- Synchronized three-pane review experience (cross-pane anchor highlights)
+- Orchestrator prompt improvements for op-type accuracy
+- Schema validator strictness for proposal.before entries (reject embedded \n)
+
+### Key Insights
+
+- The strategic chat + Claude Code two-surface model remained the right fit under 14 hours of load with major architectural decisions. State-delta prompts produced cleanly, Claude Code executed verbatim, operator approved each diff. Zero drift on strategic state files.
+- Live testing is the primary bug-surfacing mechanism for anything user-facing. Today reinforced yesterday's insight: the three critical bugs (REPLACE_LINE indentation, applyProposals heuristic failures, contentEditable Enter/backspace) were all invisible to unit tests and surfaced in the first minutes of real usage with a real resume. Test suites aren't wrong — they're just operating at a different abstraction level than user interaction bugs live at.
+- The intake checklist gap surfaced mid-session: the frontend MVP spec did not capture "user will paste resumes that came from DOCX/PDF and expect format-preserving output" as an intake requirement. Captured as `venture-intake-checklist.md` in second-brain/05_reference/ for future ventures. Gap cost no time today but would have cost major time if caught later. Intake checklist discipline pays off.
+- The contentEditable dead end is a meta-lesson more valuable than the specific fixes. Any product requirement mixing user-editable text AND per-character/per-line visual styling in the same rendered surface requires a real editor framework (Slate, Lexical, TipTap, ProseMirror, CodeMirror). "Simple contentEditable + React children" is a well-known trap that looks fine for demos and fails under real use. Added to venture-intake-checklist as editor-framework-decision question for future ventures.
+- Stopping for the night when push-through-to-finish was tempting was the correct call. The Slate migration is a 2-4 hour focused task with a clear plan. Starting it at midnight after 14 hours of debugging would have introduced regressions beyond the scope of the migration itself and required rollback in the morning. The plan doc is a much better handoff than a half-finished implementation.
+- Mid-session design changes are expensive but sometimes correct. Today's review-screen redesign (two-pane → single-pane + multi-level undo + Toggle All) happened around hour 6 and required reworking Fix 1a and building Fix 1b. Looking back, the redesign was right — the original two-pane split was the wrong UX. The cost of catching it live-test-late instead of spec-review-early was about 2 hours. Catching the contentEditable issue spec-review-early would have saved 4+ hours. Intake checklist captures this so future ventures don't repeat.
+- The strategic chat was worth its weight in pushing back on tired decisions near the end of the session. Twice tonight the chat pushed Oliver to stop instead of push through; both were the correct call. The value of having a separate strategic surface (not just an execution interface) is amplified during long sessions.
+
+### Artifacts Produced (Today, Full List)
+
+resume-saas repo (28 commits today):
+- frontend/components/OriginalPane.tsx (new)
+- frontend/components/ProposedPane.tsx (new, rewritten 3x over the day)
+- frontend/components/ProposalCard.tsx (new)
+- frontend/components/ProposalsList.tsx (new)
+- frontend/components/ReviewScreen.tsx (new)
+- frontend/components/AppShell.tsx (modified — review case wired)
+- frontend/lib/types.ts (modified — UndoEntry type, undoStack)
+- frontend/lib/context/actions.ts (modified — TOGGLE_ALL added)
+- frontend/lib/context/reducer.ts (modified — multi-level undo semantics)
+- frontend/lib/applyProposals.ts (modified — Fix 2 + Fix 4 defensive fallbacks)
+- frontend/lib/diffPreview.ts (new — per-op diff line computation)
+- frontend/scripts/ (new — diagnostic scripts from Fix 4 reconnaissance)
+- docs/frontend-mvp-spec-v1.md (modified — Revision History, single-pane design, multi-level undo, Toggle All, known applyProposals limitations)
+- docs/build-log.md (11 new design-decisions rows, 2 Meta-lessons entries, multiple per-fix session entries)
+- docs/stage-4a-slate-migration-plan.md (new — full handoff document for next session)
+
+Strategic state:
+- ai-factory/system-state/strategic/01_current-strategy.md (5 new Locked Decisions, 2 new Open Decisions, 4 new Things Not Building entries)
+- ai-factory/system-state/strategic/02_current-focus.md (Stage 4a progress, Stage 4b dependencies, Slate migration task queue)
+- ai-factory/system-state/strategic/03_session-log.md (this entry)
+
+Knowledge OS:
+- second-brain/05_reference/venture-intake-checklist.md (new — 15-question intake checklist seeded from resume-saas lessons)
+- second-brain/06_retros/2026-04-22_resume-saas-intake-gap-mid-build.md (new — mid-build retro on format-preservation vision gap)
+
+### Next Session Should Start With
+
+The session-start protocol in workspace/CLAUDE.md will run automatically. It should produce a summary ending with:
+
+"Stage 4a is substantially complete. The blocker for completion is a Slate.js migration of ProposedPane. Read `repos/resume-saas/docs/stage-4a-slate-migration-plan.md` end-to-end before writing any prompts. Then read Slate's quickstart. Validate the plan's proposed implementation approach against Slate's idioms, adjust if needed, then execute."
+
+First action after summary: read the migration plan doc. Do NOT start writing Claude Code prompts until that plan has been read and Slate's basics have been skimmed. The plan doc estimates 2-4 hours total for the migration (including test and close-out).
+
+### Open Questions For Next Session
+
+- Will Slate's idioms for programmatic document replacement (Transforms.delete + Transforms.insertNodes at root) work cleanly, or does Slate prefer a different pattern for full-value replacement on structural changes?
+- Does `lib/diffPreview.ts` survive the migration or become obsolete? Decide during implementation.
+- After Slate migration lands, revisit Stage 4b sequencing: versioning + export, or start with export first?
+- Post-Stage-4b: when does docker-compose.yml become worth building vs. continuing with parallel dev server commands?
+
+---
+
 ## 2026-04-21 (evening) — End-of-day close-out: Stages 1 through 3.5 shipped, MVP plumbing complete (Claude.ai chat + Claude Code)
 
 **Duration:** Full day — approximately 8+ hours from start of execution chat through final commit.
