@@ -4,6 +4,55 @@
 
 ---
 
+## 2026-06-06 — S&H Core 30 Wave 2 Complete (Stafford→Springfield→Burke→Lorton) (Claude Code in VS Code)
+
+**Duration:** ~5 hours
+**Mode:** implementation
+**Interface:** Claude Code in VS Code
+
+### What Happened
+- Resumed wave-2 from handoff at Stafford (positions 28-29), completed all 4 remaining cities
+- Published 10 pages total: Stafford (2), Springfield (3), Burke (2), Lorton (3)
+- Full pipeline per page: author Q&A bodies → house-voice-rewrite → output-quality-loop EVALUATE → imagery (faceless/topic reuse + cached about portrait) → publish via publish-core-30-page.py
+- Gate-peer-reviewer v2.1 execution evidence at every gate (placeholder counts + JSON-loaded foreign-client identity strings)
+- 4 source-level defects found and fixed mid-run (D-10 through D-13)
+- S&H Core 30 now at 29/30 pages live (slot 30 reserved for GSC-driven demand)
+
+### Decisions Made
+- Dispatch times parameterized per city: Lorton=15–20min, Springfield/Burke=20–30min, Stafford=35–50min (distance from Woodbridge HQ)
+- areaServed in JSON-LD parameterized from city JSON (no more client-level HQ-county default)
+- Utility coordination language parameterized (Stafford gets "Dominion, NOVEC, or REC"; Fairfax County cities get "Dominion Energy")
+- D-13 three-check spec written for dispatch-time verification (body-internal + meta-inclusion + ground-truth cross-check) — logged, not yet built into gate-peer-reviewer SKILL.md
+
+### Artifacts Produced
+- 10 live pages (WP post IDs 4918-4939)
+- scaffold-core-30-page.py: 3 new template variables (area_served_schema, utility_coordination_phrase, dispatch_time_phrase/short)
+- emergency-electrician.json: fully parameterized (0 literal "45" dispatch references)
+- s-and-h-contracting/panel-upgrade.json: utility phrase parameterized
+- 4 city JSONs updated (stafford, springfield, burke, lorton): area_served_schema + electric_utilities + dispatch_time_phrase
+- D-10/D-11/D-12/D-13 added to lesson-gate-peer-reviewer-build-wave-2-calibration-2026-06-06.md
+- feedback memory: gate-reviewer must show execution evidence not narrative
+- Handoff flipped to closed
+
+### Key Insights
+- The meta description is the recurring failure point for dispatch-time consistency — it's baked at scaffold time into draft-v1.md and not re-checked by body-editing passes
+- Operator live-verification catches value-correctness errors the reviewer doesn't yet (D-13 spec written but not automated)
+- Per-service hero reuse across cities works cleanly — zero new image generation needed for 10 pages, $0 credit cost
+- Pipeline velocity increased through the session as trust built: Stafford got full gate-by-gate review, Springfield got G-data + G-publish only, Burke/Lorton ran straight through
+
+### Next Session Should Start With
+- Slot 30: check GSC data for demand signal to assign the final page
+- S&H Phase 2 hubs (C1-C4): 29 live pages across 4+ services × 4+ cities triggers hub buildability
+- GSC ADC re-auth: `gcloud auth application-default login` for indexing API
+- D-13 implementation: build the 3-check spec into gate-peer-reviewer SKILL.md
+
+### Open Questions For Next Session
+- Slot 30 service/city assignment — pending GSC impression data
+- AIOSEO bridge plugin installation on shcontractingunlimited.com — meta descriptions currently require manual wp-admin paste
+- Whether to re-scaffold the 10 pages with the parameterized scaffolder (they work fine as-is with manual fixes applied; re-scaffolding would only matter if the scaffolder output is the canonical source-of-truth for future edits)
+
+---
+
 ## 2026-06-06 — S&H Core 30 Wave 2 Build (Alexandria validation) (Claude Code in VS Code)
 
 **Duration:** ~6 hours
