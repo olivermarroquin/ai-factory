@@ -4,6 +4,51 @@
 
 ---
 
+## 2026-06-06 — S&H Core 30 Wave 2 Build (Alexandria validation) (Claude Code in VS Code)
+
+**Duration:** ~6 hours
+**Mode:** implementation
+**Interface:** Claude Code in VS Code
+
+### What Happened
+- Spawned wave-2 build from handoff-2026-06-05-s-and-h-core-30-wave-2-build.md
+- Wave R: Produced 13 intersection briefs for 5 new cities (Alexandria ×3, Stafford ×2, Springfield ×3, Burke ×2, Lorton ×3) with live SERP research per cell
+- Wave S: Scaffolded 5 city JSONs + 13 page drafts (positions 17-29) via scaffold-city-data.py + bulk-scaffold-pages.py
+- Wave P1: Published Alexandria's 3 pages (positions 23-25) as the live wave-4 validation — first production run of autonomous gate-peer-reviewer
+- 9 calibration defects (D-01 through D-09) captured as the gate-peer-reviewer Build wave 2 calibration corpus
+- Fixed containedInPlace schema bug (Alexandria listed as Fairfax County), county→city text, response-time meta desync
+
+### Decisions Made
+- Demand-ranked publish order: Alexandria first (vol 260), then Stafford→Springfield→Burke→Lorton
+- Faceless/generic heroes (not owner-face), per-service reuse across cities
+- House-voice-rewrite mandatory before publish (caught as gap D-08, retroactively applied)
+- Quality-loop EVALUATE mandatory before publish (caught as gap D-07, retroactively run)
+
+### Artifacts Produced
+- 13 intersection briefs in second-brain/05_shared-intelligence/research-briefs/intersections/
+- 5 city JSONs in repos/ai-agency-core/scripts/data/cities/
+- 13 page draft folders in core-30/ (positions 17-29)
+- 3 published pages: panel-upgrade/emergency-electrician/ev-charger-installation × Alexandria
+- Lesson: lesson-gate-peer-reviewer-build-wave-2-calibration-2026-06-06.md (9 D-rows)
+- Execution log: execution-log-2026-06-06-core-30-wave-2-build.md
+
+### Key Insights
+- The gate-peer-reviewer v2.0 has 9 calibration fixes needed before next production run — the D-rows are the highest-value output of this session
+- House-voice-rewrite is load-bearing — without it, content reads as competent-generic not contractor-authentic
+- The publish script's quality gate (refusing without last-verdict: PASS) is a genuine safety net that caught real bugs
+- Stafford has the weakest competitor SERP in the service area — a Minnesota spam page on page 1
+
+### Next Session Should Start With
+- Resume wave-2 at Stafford (2 pages, positions 28-29) — drafts scaffolded, pipeline: author Q&As → house-voice → imagery → quality-loop → publish
+- Then Springfield (3) → Burke (2) → Lorton (3) — 10 pages total remaining
+
+### Open Questions For Next Session
+- Stafford/Burke Q&A bodies: reference EV charger installation or keep strictly to panel + emergency?
+- Emergency-electrician hero library: generate a 4th variant for variety across 5 cities?
+- Word count ~4,800 on Alexandria pages vs 2,500 target: trim for other cities or accept?
+
+---
+
 ## 2026-06-06 — Website-factory Phase 0 intel complete (Claude Code)
 
 **Duration:** ~2.5 hours
