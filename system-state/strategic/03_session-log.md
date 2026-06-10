@@ -4,6 +4,71 @@
 
 ---
 
+## 2026-06-09 → 06-10 — EV + S&H Core 30 completion, hub pages, nav architecture (Claude Code in VS Code)
+
+**Duration:** ~12 hours (split across two calendar days)
+**Mode:** implementation + debugging
+**Interface:** Claude Code in VS Code (execution) + Claude.ai meta-review chat (peer review, skill authoring, render verification)
+
+### What Happened
+
+**EV Electric — Core 30 completion + hub architecture:**
+- Fixed 3 live pages (03/04/05) with customer-visible placeholder content (hero, portrait, map) — replaced with real assets via WP REST API
+- Fixed homepage Favicon-04.png (5 refs in `_elementor_data` replaced with cropped-Favicon.png)
+- Built and published 7 hub pages: 6 per-service hubs (electrical-troubleshooting, panel-upgrade, ev-charger-installation, light-fixture-installation, smoke-alarm-installation, outlet-installation) + 1 master Service Areas page with full service×city matrix
+- Rewired header nav (WP menu 55): swapped 3 arbitrary city sub-items → 6 service hub items + "Service Areas" top-level
+- Wired /services/ page (ID 97) with 6 hub-card links
+- Added breadcrumb backlinks to all 30 leaf pages (Home › Hub › This page)
+- Set crafted AIOSEO meta descriptions on all 7 hubs (were auto-generated CSS text)
+- Fixed hub CSS structure: wp:html wrapping, consolidated style blocks, hub-specific additions (city-grid, matrix, check-list)
+- **EV result: 37 pages live (30 leaves + 7 hubs), all in-nav, max crawl depth 3 clicks**
+
+**S&H Contracting — leaf fix + hub architecture:**
+- Fixed S&H homepage Elementor rendering (corrupted `_elementor_data` JSON — unescaped quotes in CF7 shortcode from prior string-replace)
+- Meta-review chat: fixed 28 S&H leaves missing `<!-- wp:html -->` wrapper (wpautop injected `<p>` into `<style>`, breaking hero gradient on 27/28 leaves)
+- Meta-review chat: built and published 5 S&H hubs + rewired header/footer nav + added 29 leaf breadcrumbs + fixed hub hero images + footer "Areas We Serve" column
+- **S&H result: 29 leaves + 5 hubs live, all in-nav**
+
+**Tooling + skills:**
+- New skill: `hub-and-nav-build` v1.0 → v1.1 (authored by meta-review chat): hub page template, nav-wiring SOP, CSS contract, verification gate, failure guardrails
+- Render gate hardened to 3-state PASS/FAIL/BLOCKED with hero-image-fill assertion and connectivity preflight
+- Guard 4 added to `publish-core-30-page.py`: re-reads content.raw post-publish, re-posts if wp:html wrapper lost
+
+### Decisions Made
+- **Footer: Option C** (Service Areas hub as crawlable link surface) — no Elementor footer template edit needed; fully automatic
+- **Hub content: rich** (~800–1200 words per hub, house-voice quality bar)
+- **Title banner: accepted** — CSS injection into page content broke hub rendering twice; operator accepted the theme title banner rather than risk further regressions; future fix must be via page-level template/meta only
+- **S&H footer: Option D** (client-side WPCode JS snippet) — Elementor footer not REST-writable, JS snippet wires links without touching template data
+
+### Artifacts Produced
+- 7 EV hub pages (WP 6347–6353) + 5 S&H hub pages (WP 5004–5008)
+- `plan-hub-pages-nav-architecture-2026-06-09.md` (approved + executed)
+- `lesson-ev-sh-run-failure-retrospective-2026-06-09.md` (ISSUE-01 through ISSUE-13)
+- `lesson-sh-leaf-wpautop-wrapper-defect-2026-06-09.md`
+- `lesson-elementor-footer-clientside-link-fix-2026-06-09.md`
+- `pattern-elementor-clientside-snippet-nav-footer-fix.md` (2 validated instances)
+- `skills/hub-and-nav-build/` v1.1 (full skill with CSS contract, verification gate, failure guardrails)
+- Guard 4 in `publish-core-30-page.py` (wp:html wrapper preservation)
+
+### Key Insights
+- **CSS injection into WP page content is fragile and destructive.** Three rounds of inject/remove for the title-hide CSS stripped 17K chars of base CSS; structural checks (balanced braces) passed while pages rendered unstyled. The render gate (getComputedStyle) was the only check that caught it. Standing rule: never modify the `<style>` block to add layout/visibility overrides; use page-level template/meta or accept the cosmetic issue.
+- **String-replacing serialized data breaks it.** The S&H homepage `_elementor_data` corruption (ISSUE-12) was caused by a string-replace on the JSON blob. Parse → edit node → re-serialize is the only safe path.
+- **"Verified" off an HTML-string check is not verified.** CSS rule presence ≠ CSS applying ≠ page rendering styled. This session produced 3+ false "verified" claims. The rendered visual output is the only ground truth.
+- **wp:html wrapper is mandatory for HTML-in-WP-content pages.** Without it, wpautop and wptexturize corrupt `<style>` blocks and inline CSS. 27 of 28 S&H leaves shipped without it; the publish script now has Guard 4 to enforce it.
+
+### Next Session Should Start With
+- Verify EV hub rendering is stable (operator screenshot-confirmed before close)
+- 2 S&H legacy page redirects (expert-electrical-repairs, specialized-electrical-services) — needs Redirection plugin
+- Rotate the exposed S&H WP application password (credentials.md value appeared in a tool output)
+- GSC indexing recheck ~2026-06-22 (2 weeks from publish) for both clients
+- Golden-Services-02.png file copy (operator Hostinger action, documented in EV deployment status)
+
+### Open Questions For Next Session
+- S&H /services/ page (ID 873): Elementor page, ignores post_content — hub links block doesn't render. Needs Elementor editor edit or client-side JS injection (Option D pattern). Low priority — hubs are reachable via header+footer nav.
+- Whether to build city-level hub pages (e.g., /vienna-va/) — deferred until Core 60+ when cities have 3+ services each
+
+---
+
 ## 2026-06-06 — S&H Core 30 Wave 2 Complete (Stafford→Springfield→Burke→Lorton) (Claude Code in VS Code)
 
 **Duration:** ~5 hours
