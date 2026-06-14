@@ -4,6 +4,87 @@
 
 ---
 
+## 2026-06-13 → 06-14 — [WF-14] Full current-state capture: EV + S&H + AJ Long (Claude Code in VS Code)
+
+**Duration:** ~7 hours
+**Mode:** implementation (capture + archive)
+**Interface:** Claude Code in VS Code (execution) + parallel Cowork reviewer (independent verification throughout)
+
+### What Happened
+
+**Setup + opening protocol:**
+- Read WF-14 handoff, WF-4 postmortem, pre-build-due-diligence-gate pattern
+- Moved WF-14 Ready→Active in tracker (pass 181)
+- Discovered all live page URLs via sitemaps: EV 41, S&H 58, AJ Long 24 representative
+- HTTP precheck: 123/123 URLs returned 200 (C-01 resolved by visual confirmation on AJ Long PNGs)
+
+**Folder reorg (operator-approved option b):**
+- Created 3-state model for both clients: old/pre-core-30, old/post-core-30, new/custom-site
+- EV: moved 6 HTML + _files/ + 2 TODOs → pre-core-30. S&H: moved 2 HTML + _files/ + 2 TODOs
+- Updated all 6 _README.md files (2 top-level + 2 old/ + 2 new/)
+- new/core-30/ and new/existing-pages/ untouched throughout
+
+**EV Electric capture (41/41 pages, 519MB):**
+- 164 screenshots (desktop 1440 + mobile 375, full + ATF per page)
+- 41 HTML, 41 CSS, 41 computed-styles JSON, 41 meta/schema/OG JSON
+- 143 assets (22 images, 90 fonts/7 Google Fonts families, 28 JS, 3 favicons)
+- Full sitemap diff on disk: 41/43 content pages captured, 2 Elementor template fragments excluded
+
+**S&H Contracting capture (58/58 pages, 634MB):**
+- 232 screenshots, 58 HTML, 35 CSS, 58 computed-styles, 58 meta
+- 151 assets (119 images, 25 Roboto fonts, 4 JS, 3 favicons)
+- Server throttled after ~35 pages; retry with 3s delays captured remaining 23
+- Full sitemap diff: 58/60 captured, 2 taxonomy archives excluded
+
+**AJ Long Electric benchmark (24/24 pages, ~50MB):**
+- 96 screenshots covering all 18 distinct page types (template-complete)
+- 24 HTML, 2 CSS (Tailwind v4), 24 computed-styles, 24 meta
+- 41 assets (5 images, 1 Inter font, 33 JS bundles, 2 favicons)
+- Design tokens extracted: dark theme, Inter font, 60px h1, Next.js stack
+
+**Wayback Machine recovery (handoff task 6):**
+- EV: No Wayback snapshots exist (archive never crawled evelectric.pro). May 2026 HTML is the only pre-Core-30 record.
+- S&H: 4 pages recovered from Jan-Feb 2026 (homepage, about, expert-electrical-repairs, electrical-installations) with 8 screenshots + 4 HTML
+
+**Read-only proof closed (C-11):**
+- Both sites' sitemap lastmods unchanged after ~4-hour capture window
+- EV: page-sitemap 2026-06-10T01:10:51, elementskit 2026-05-25T20:41:16 — unchanged
+- S&H: all 4 sitemaps unchanged
+
+### Decisions Made
+- AJ Long capture = 24 representative pages (template coverage), not all 1,018 — reviewer-approved as "acceptable for design benchmark"
+- S&H taxonomy archives (category/author) deliberately excluded with justification — not authored content
+- EV Elementor template fragments excluded — not visitor-facing pages
+- Wayback recovery best-effort: EV has zero archive history, documented as the fallback record
+
+### Artifacts Produced
+- EV `website-archive/old/post-core-30/` — complete capture (screenshots, HTML, CSS, computed-styles, meta, assets, manifest)
+- S&H `website-archive/old/post-core-30/` — complete capture (same structure)
+- AJ Long `aj-long-teardown/raw/` — benchmark capture (screenshots, HTML, CSS, computed-styles, meta, assets, manifest)
+- S&H `old/pre-core-30/wayback-screenshots/` + `wayback-html/` — 4 recovered pages
+- S&H `old/pre-core-30/_wayback-recovery.md` — recovery manifest
+- Both clients' `website-archive/` folder reorg (3-state model) with 6 updated READMEs
+- `ev-sitemap-diff.md`, `sh-sitemap-diff.md` + JSON dumps — sitemap completeness proof
+- `url-status-precheck.txt` — 123-URL HTTP status baseline
+- `full-site-capture.mjs` + `asset-computed-styles-pass.mjs` — reusable capture scripts
+
+### Key Insights
+- **WordPress servers throttle rapid Playwright requests.** S&H's Hostinger server started dropping connections after ~35 pages in quick succession. Fix: 3s inter-page delay + 90s timeout. Pattern candidate for future captures.
+- **Google Fonts aren't captured by @font-face CSS reading** — Elementor loads them via `<link>` to fonts.googleapis.com, and cross-origin protection blocks reading the CSS rules. Separate download pass needed (fetch the CSS, parse woff2 URLs, download).
+- **Next.js assets need different handling** — AJ Long's images are served via `/_next/image` (optimized), fonts via `/_next/static/media`, JS via `/_next/static/chunks`. The generic asset collector finds fewer because URLs are dynamically constructed. Captured via the supplemental pass.
+- **Sitemap diff is essential** — the reviewer caught that the initial "41/41 zero skips" was circular (measured against our own URL list, not the live sitemap). The full sitemap dump + diff proved completeness against the real denominator.
+- **The review gate caught real gaps** — assets empty (C-04), computed-styles missing (C-05), manifest naming wrong (C-06), sitemap labels mislabeled (C-09). Without the reviewer, the capture would have shipped incomplete.
+
+### Next Session Should Start With
+- [WF-4-R2] is now unblocked — the full EV + AJ Long capture exists as the design target
+- Read the WF-4-R2 handoff + run the pre-build-due-diligence-gate checklist with the capture data
+
+### Open Questions For Next Session
+- Should the `full-site-capture.mjs` + `asset-computed-styles-pass.mjs` scripts be promoted to a reusable skill? (Pattern candidate noted)
+- Should a Wayback recovery step be a standard part of the client onboarding flow? (EV has zero history — early clients may have the same gap)
+
+---
+
 ## 2026-06-09 → 06-10 — EV + S&H Core 30 completion, hub pages, nav architecture (Claude Code in VS Code)
 
 **Duration:** ~12 hours (split across two calendar days)
