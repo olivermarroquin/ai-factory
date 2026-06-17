@@ -4,6 +4,58 @@
 
 ---
 
+## 2026-06-16 — [MI-8] Govcon duplicability proof: federal IT services (Claude Code in VS Code)
+
+**Duration:** ~3 hours
+**Mode:** implementation (data collection + analysis + skill extension)
+**Interface:** Claude Code in VS Code (host-side execution)
+
+### What Happened
+- Moved [MI-8] Ready→Active on tracker (pass 230)
+- Ran `market-intelligence-engine` on government contracting (B2G) — a far field from the electrician origin — from config alone
+- Pulled USASpending API data: 8 queries across NAICS 541512/541511/518210, all-firms + SB + 8(a) + SDVOSB + WOSB + HUBZone + agency breakdown
+- Consolidated 86-entity SB competitor set, scored top 15 light / 5 deep across 14 arenas
+- Produced Output A (perfect company profile) + Output B (Keelworks govcon gap-to-action plan)
+- Updated skill v1.0→v1.1: B2G arena variant (G1-G6), per-client provisioning preflight, geo-grid anchor fallback
+- Updated spec with B2G arena variant section
+- Added 7 new data gaps (DG-20..DG-26) to register
+- Wrote reuse map, govcon playbook pattern, gate-label re-audit
+- Completed independent peer review (PASS-WITH-FIXES, 6 findings, all applied)
+
+### Decisions Made
+- Score SB tier against SB tier (not large primes) — Keelworks' actual competitive frame
+- 14-arena model for B2G (8 standard + 6 G-arenas) rather than forcing govcon into local-services arenas
+- Relabel (not re-run) 4 pre-registration G-market-intel verdicts — data sound, labels corrected
+- Federal IT services as priority-1 niche; other 4 niches deferred to follow-up chat
+
+### Artifacts Produced
+- `mi8-govcon-data/` — 8 USASpending JSON files, consolidated competitor set, analysis, Output A, Output B, reuse map, execution log, gate-label re-audit
+- `skills/market-intelligence-engine/SKILL.md` v1.1
+- `spec-market-intelligence-engine.md` B2G variant section
+- `05_shared-intelligence/patterns/pattern-govcon-market-intelligence-playbook.md`
+- `_data-gap-register.md` updated with DG-20..DG-26
+- Tracker pass 230 + changelog + event-log row
+
+### Key Insights
+- **The engine's config-driven architecture worked on a far B2G field.** 47% of components ran as-is; 29% needed skill extension (the B2G arenas), not instance hacks. Done bar for `feedback_no_half_finished_build_for_reuse` met.
+- **B2G competition is structurally different from local-services.** Awards, certifications, vehicles, agency incumbency, and teaming partnerships are the decision-drivers — not SEO, local pack, or Google reviews. The arena model had to extend, not just parameterize.
+- **8(a) eligibility is the single highest-leverage finding for Keelworks.** If Oliver qualifies (Hispanic/Latino heritage = presumed socially disadvantaged), sole-source contracts up to $4.5M open immediately. This changes the entire entry strategy.
+- **Chrome is essential for B2G collection completeness.** SAM.gov, GSA eLibrary, SBA DSBS are all JS-rendered — WebFetch returns empty. G2/G3/G4/G6 precision requires Chrome.
+
+### Next Session Should Start With
+- Confirm Chrome (Work profile) connectivity
+- Run Chrome-dependent collection for federal IT services (SAM.gov, GSA eLibrary, SBA DSBS)
+- Pull remaining 4 govcon niches (facilities/construction, staffing, management-consulting, GSA-furniture)
+- Set up durable cadence scheduling (monthly tool scan + quarterly re-score)
+- Furniture Config B (lighter second-instance confirmation)
+
+### Open Questions For Next Session
+- Is Oliver eligible for 8(a)? (requires personal financial disclosure — not determinable by the engine)
+- Is Keelworks registered on SAM.gov? (Chrome needed to verify)
+- Should the remaining 4 niches be full runs or lighter confirmation passes?
+
+---
+
 ## 2026-06-13 → 06-14 — [WF-14] Full current-state capture: EV + S&H + AJ Long (Claude Code in VS Code)
 
 **Duration:** ~7 hours
