@@ -4,6 +4,98 @@
 
 ---
 
+## 2026-06-19 — [PROVISION-existing-project] vault-orchestrator v1.6 existing-project decomposition (Claude Code in VS Code)
+
+**Duration:** ~3 hours
+**Mode:** implementation
+**Interface:** Claude Code in VS Code
+
+### What Happened
+- Extended vault-orchestrator Mode 3 PROVISION with `--existing-project <slug>` flag
+- Built 3-state phase classifier (done / partial / not-started) that reuses RESUME's 6-source state-read
+- Created classification rules reference doc (`references/existing-project-classification-rules.md`)
+- Added collision awareness against existing handoffs, in-flight chats, and spawn-queue rows
+- Validated against website-factory program (17 phases: 7 done skipped, 3 partial scoped, 7 not-started identified)
+- Bumped skill v1.5 → v1.6 with full changelog, trigger phrases, flags, step-by-step (E1-E10), verification checks (12-18)
+- Underwent 3 rounds of independent peer review (operator-directed): converged [2,1,0]
+
+### Decisions Made
+- **Flag-based branch, not a separate mode.** Chose `--existing-project` flag on Mode 3 rather than "Mode 3b" because the output shape is identical to greenfield PROVISION.
+- **Reuse RESUME's read, not reimplementation.** Steps E1-E2 invoke RESUME's 6-source read directly — no new read logic.
+- **Three-state classifier, not binary.** Partial is distinct from done and not-started. WF-4's rejection case proved this is essential.
+- **Collision-first, not draft-first.** Collision check (Step E5) runs before DECOMPOSE (E6) to prevent duplicate handoffs.
+
+### Artifacts Produced
+- `skills/vault-orchestrator/SKILL.md` (v1.6)
+- `skills/vault-orchestrator/references/existing-project-classification-rules.md` (new)
+- `second-brain/_meta/handoffs/vault-orchestrator/execution-log-2026-06-19-provision-existing-project.md`
+- Event-log rows (build + close)
+- Tracker pass 265 (open) + pass 271 (close)
+- _recently-closed closure record + one-liner
+
+### Key Insights
+- Almost all real work is mid-stream, not greenfield — this was the single most-requested PROVISION capability
+- The classifier's signal hierarchy (recently-closed > execution log > handoff frontmatter > artifacts) handles real vault messiness well
+- Vault status values are more varied than expected (`ready` vs `ready-to-spawn`, `completed` vs `consumed` vs `closed`) — the classifier needed to cover all of them
+
+### Next Session Should Start With
+- vault-orchestrator Phase 5 (per-project orchestrator decomposition) is now unblocked — this was the gating prereq
+
+### Open Questions For Next Session
+- Should Phase 5 decompose the monolith into sub-skills, or is the current single-SKILL.md approach still serviceable given the existing-project path?
+
+---
+
+## 2026-06-17 — [MI-8] Chat 2: Replicate 4 govcon niches + MI-8 close-out (Claude Code in VS Code)
+
+**Duration:** ~2.5 hours
+**Mode:** implementation (data collection + analysis + close-out)
+**Interface:** Claude Code in VS Code (host-side execution)
+
+### What Happened
+- Ran `market-intelligence-engine` v1.1 on 4 remaining govcon niches from config alone: facilities/construction (NAICS 236220/561210), staffing (561320/561311), management-consulting (541611/541612/541618), GSA-furniture/office (337214/337127)
+- Pulled 29 USASpending API queries across all niches (all-firms, SB, 8(a), SDVOSB, WOSB, HUBZone, agency breakdowns)
+- Produced 12 analysis files (analysis + Output A + Output B per niche)
+- Discovered correct USASpending API set-aside filter parameter (`set_aside_type_codes`, not `set_asides`)
+- Updated reuse map with cross-niche confirmation table (5 niches, zero leaks, zero skill changes)
+- Added 21 new data gaps (DG-27..DG-47) to the central register
+- Updated _README with all niche data folders, flipped MI-8 status to "pending independent review"
+- Ran OQL across all 15 deliverable files: PASS-WITH-FINDINGS (4 advisories, 0 blocking)
+- Applied all OQL fixes (README date, ground-truth verification)
+- Wrote execution log for Chat 2
+
+### Decisions Made
+- **Scoring honesty:** Keelworks G4=0 for construction/staffing/furniture (no relevant capability) vs G4=1 for IT/consulting (real AI capability, zero govcon framing)
+- **DG renumbering:** Furniture DG-33-37 → DG-43-47 to avoid collision with staffing
+- **Furniture Config B superseded:** GSA-furniture govcon niche run replaces the original lighter local-services furniture test — 5 govcon niches is a stronger duplicability proof
+- **Cross-niche verdict:** Pursue IT services (primary) + management consulting (additive); do not pursue construction/staffing/furniture as prime
+
+### Artifacts Produced
+- 12 new analysis files (4 × {analysis, Output A, Output B})
+- 29 raw USASpending JSON files across 4 niche subfolders
+- Updated: mi8-reuse-map.md, _README.md, _data-gap-register.md, 02_current-focus.md
+- mi8-chat2-execution-log-2026-06-17.md
+- This session log entry
+
+### Key Insights
+- **Zero skill changes for 4 additional niches confirms v1.1 is production-ready.** The B2G arena variant, provisioning preflight, and gap-discovery mechanism all transferred without modification across physical products (furniture), construction, healthcare staffing, and knowledge-work consulting.
+- **Zero hardcoded leaks is the strongest reproducibility evidence.** No electrician-origin terminology leaked into any of the 5 govcon analyses.
+- **Management consulting (541611) is the second viable niche for Keelworks** — AI transformation consulting under the same cert/vehicle path as IT services. Dual NAICS registration recommended.
+- **The SB set-aside pool varies enormously by niche:** IT services ($315M top), consulting ($97M), construction ($86M), furniture ($22M), staffing ($19M). This determines competitive pressure and opportunity size.
+
+### Next Session Should Start With
+- Dispatch independent reviewer on Chat 2 deliverables (operator action)
+- On reviewer PASS: move [MI-8] Active→_recently-closed on tracker
+- Chrome-dependent collection remains a deferred residual (not blocking MI-8 close)
+- Cadence scheduling (monthly tool scan + quarterly re-score) remains session-only, not yet durable
+
+### Open Questions For Next Session
+- Is Oliver eligible for 8(a)? (personal financial assessment — not determinable by the engine)
+- Should cadence scheduling be set up as durable scheduled tasks now, or after MI-8 fully closes?
+- Should the management consulting pursuit be actioned immediately (add 541611 to SAM.gov registration) or wait for the IT services path to be further along?
+
+---
+
 ## 2026-06-16 — [MI-8] Govcon duplicability proof: federal IT services (Claude Code in VS Code)
 
 **Duration:** ~3 hours

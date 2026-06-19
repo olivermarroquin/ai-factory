@@ -13,12 +13,16 @@ Scaffold resume-saas frontend and wire it end-to-end to the Flask backend. Stage
 - [ ] Stage 4a Slate migration — replace ProposedPane contentEditable surface with Slate.js editor. Plan doc at `repos/resume-saas/docs/stage-4a-slate-migration-plan.md`. Estimated 2-4 hours. Read plan doc + Slate quickstart BEFORE writing execution prompt. This is the blocker for completing Stage 4a.
 - [ ] Create `repos/resume-saas/docker-compose.yml` for local dev (post-Stage-4)
 
+### Vault Orchestrator
+- [x] [PROVISION-existing-project] vault-orchestrator v1.6 — existing-project decomposition (close Gap 1). SHIPPED 2026-06-19. `--existing-project <slug>` on Mode 3 PROVISION. Independent peer-review PASS (3 rounds). Unblocks Phase 5.
+
 ### Market Intelligence
 - [x] [MI-8] Federal IT services niche — DONE (peer review PASS 2026-06-16). Skill v1.0→v1.1 (B2G arena variant). Output A + B produced. Reuse map + playbook pattern captured.
-- [ ] [MI-8] Remaining govcon niches (facilities/construction, staffing, management-consulting, GSA-furniture) — follow-up chat
-- [ ] [MI-8] Chrome-dependent collection for federal IT (SAM.gov, GSA eLibrary, SBA DSBS) — needs Chrome confirmed
-- [ ] [MI-8] Furniture Config B (lighter second-instance confirmation) — follow-up chat
-- [ ] [MI-8] Cadence durable scheduling (monthly tool scan + quarterly re-score) — not yet persisted
+- [x] [MI-8] Remaining govcon niches — DONE (2026-06-17). All 4 niches (facilities/construction, staffing, management-consulting, GSA-furniture) completed from v1.1 config alone. Zero hardcoded leaks, zero skill changes. 12 analysis files + 29 raw JSON. OQL PASS-WITH-FINDINGS (4 advisories, 0 blocking). **Pending independent review.**
+- [ ] [MI-8] Chrome-dependent collection for all niches (SAM.gov, GSA eLibrary, SBA DSBS) — deferred, not blocking close
+- [x] [MI-8] Furniture Config B — SUPERSEDED by GSA-furniture govcon niche run (ran as B2G variant, not local-services). The duplicability proof is stronger: 5 govcon niches > original 1 govcon + 1 local-services plan.
+- [ ] [MI-8] Cadence durable scheduling (monthly tool scan + quarterly re-score) — referenced in spec §6, not yet persisted as durable scheduled tasks
+- [ ] [MI-8] Independent review of Chat 2 deliverables — operator to dispatch reviewer
 
 ### Setup
 All items completed. Strategic context system, workspace/CLAUDE.md, repos/resume-saas/CLAUDE.md all updated and operational.
