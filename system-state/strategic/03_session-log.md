@@ -4,6 +4,45 @@
 
 ---
 
+## 2026-06-22 — [RGH-9-P2] reviewer-orchestrator Phase 2 auto-watch event-log (Claude Code in VS Code)
+
+**Duration:** ~1 hour
+**Mode:** implementation
+**Interface:** Claude Code in VS Code
+
+### What Happened
+- Extended reviewer-orchestrator skill v1.0 → v2.0 with Phase 2: auto-watch event-log polling loop
+- Added Steps W1–W6: enter watch mode, tick scan, report, dispatch flow (reuses Phase 1 Steps 2–8), sleep-and-loop, exit
+- Designed per-tick sleep model: conversational turns with operator intervention points between every cycle (not a monolithic Bash loop)
+- Operator dispatch-plan gate (Step 4) preserved — no silent auto-dispatch
+- Added honest limits 7 (session-scoped, not daemon) and 8 (per-session deduplication gap + mitigation)
+- Acceptance proved on a real throwaway event-log row: watcher correctly identified it as the only unreviewed item among ~15+ rows, produced dispatch manifest, cleaned up test row
+- Independent peer-review PASS (2 rounds [3,0], reviewer session 26201e56 ≠ producer b9138162)
+- 3 advisory findings fixed post-review: tab-delimited grep (false-positive fix), abort-then-re-detect nagging (aborted sessions suppressed), last_seen_line_count wired
+
+### Decisions Made
+- **Per-tick sleep, not monolithic loop.** Each tick is a discrete conversational turn: grep → cross-check → report → sleep. Operator has natural intervention points. Fits Claude Code's turn-based model.
+- **Session-scoped, not daemon.** Watcher only runs while the Claude Code session is active. Background/unattended watching is RGH-3/Hermes territory.
+- **Aborted items suppressed.** Items the operator explicitly aborts at Step 4 are added to `dispatched_sessions` so they don't nag on the next tick.
+
+### Artifacts Produced
+- `skills/reviewer-orchestrator/SKILL.md` (v1.0 → v2.0)
+- `_active-chats-tracker.md` pass 303 (Active row)
+- `_active-chats-tracker-changelog.md` pass 303 entry
+- Event-log rows (ready-for-review + reviewer PASS)
+
+### Key Insights
+- The per-tick sleep model is the right abstraction for Claude Code polling — it preserves operator control without fighting the execution model
+- Phase 2's value is highest when multiple producers are in flight simultaneously (the current state: BTF-1, MCD-P4, G4 all active)
+
+### Next Session Should Start With
+- Phase 3 (bind to Mode 6 wave-close) is DEFERRED with named trigger: Phase 2 stable for ≥1 week of real use
+
+### Open Questions For Next Session
+- None — Phase 2 is self-contained
+
+---
+
 ## 2026-06-19 — [PROVISION-existing-project] vault-orchestrator v1.6 existing-project decomposition (Claude Code in VS Code)
 
 **Duration:** ~3 hours
