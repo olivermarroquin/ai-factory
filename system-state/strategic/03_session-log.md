@@ -4,6 +4,51 @@
 
 ---
 
+## 2026-06-22 — [RGH-11] Session-level reviewer tagging (Claude Code in VS Code)
+
+**Duration:** ~2h
+**Mode:** implementation
+**Interface:** Claude Code in VS Code
+
+### What Happened
+- Built session-level reviewer detection and scoped Bash exemption for the mandatory review gate
+- Created `classify_session_role()` in engine.py — reads structural marker files, returns `'reviewer'` only on valid evidence (fail-closed on all invalid cases)
+- Created `is_bash_entry_write_safe()` in engine.py — scoped Bash exemption that passes commands without positive write indicators (redirects, file-mutating commands, Python inline writes) while still gating state-changing Bash
+- Updated `check_gate()` with session-level exemption after RGH-10 source filter + RGH-5 independent-review filter alignment
+- Created `register-reviewer-session.py` — session marker registration script with self-review rejection
+- Updated `dirty-ledger-track.py` — added `bash_cmd` field for reliable write-indicator detection + `register-reviewer-session` to SELF_PATTERNS
+- Created `test_session_tagging.py` — 60 tests (unit + adversarial + acceptance + real-runner replay)
+- Updated CR-010, CR-054, CR-073 resolved notes in catch register
+- Independent review PASS (2 rounds: R1 1 MAJOR [type validation gap], R2 0 catches, convergence)
+
+### Decisions Made
+- **Marker file approach** for session detection (vs evidence-based inference from reviewed ledger) — avoids timing problem where reviewer gets blocked before it can clear any gates
+- **Scoped Bash exemption** (Option B from reviewer feedback) — only Bash without positive write indicators, not blanket. Caught the BLOCKING-1 bypass vector from plan review Round 1
+- **Write-indicator detection at gate-check time** (in engine.py check_gate), not at tracking time (dirty-ledger-track.py) — separates concerns: tracker tracks faithfully, gate decides exemptions
+- **Full bash_cmd field in dirty entries** — needed for reliable write-indicator detection since `display` is truncated to 80 chars
+
+### Artifacts Produced
+- `repos/ai-agency-core/scripts/mandatory-review-gate/engine.py` — `classify_session_role()`, `is_bash_entry_write_safe()`, `check_gate()` session exemption
+- `repos/ai-agency-core/scripts/mandatory-review-gate/register-reviewer-session.py` (NEW)
+- `repos/ai-agency-core/scripts/mandatory-review-gate/dirty-ledger-track.py` — SELF_PATTERNS + bash_cmd field
+- `repos/ai-agency-core/scripts/mandatory-review-gate/test_session_tagging.py` (NEW, 60 tests)
+- `second-brain/_meta/handoffs/_review-gate-catch-register.md` — CR-010/054/073 updates
+- `second-brain/_meta/handoffs/_active-chats-tracker.md` — Active row added
+
+### Key Insights
+- Plan review with adversarial probing (2 rounds before build) caught a real bypass vector (blanket Bash exemption) that would have shipped if built from the original plan
+- The `isinstance` + `.strip()` validation gap (MAJOR-1 from independent review) shows that JSON deserialization types need explicit validation — Python truthiness is too loose for security-critical code
+- Session-level exemption composes cleanly with RGH-10 per-entry tagging — three-layer defense (per-entry source → session role → write-indicator detection)
+
+### Next Session Should Start With
+- Closing protocol: move tracker row to recently-closed, flip handoff status to consumed
+- Verify the reviewer-orchestrator (RGH-9-P2) integrates `register-reviewer-session.py` into its dispatch flow
+
+### Open Questions For Next Session
+- Should `register-reviewer-session.py` validate that the `reviewing_session` dirty ledger actually exists? (Currently not required — acknowledged as honest limit that forgery requires multi-step attack with no deliverable bypass)
+
+---
+
 ## 2026-06-22 — [RGH-9-P2] reviewer-orchestrator Phase 2 auto-watch event-log (Claude Code in VS Code)
 
 **Duration:** ~1 hour
