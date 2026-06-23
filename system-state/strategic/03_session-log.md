@@ -4,6 +4,96 @@
 
 ---
 
+## 2026-06-23 — [BTF-3] Full Pipeline Generalization — Wave 3 (Claude Code in VS Code)
+
+**Duration:** ~4 hours
+**Mode:** implementation
+**Interface:** Claude Code in VS Code
+
+### What Happened
+- Executed BTF-3 Wave 3: made the entire onboarding pipeline business-type-agnostic (not just scaffolding)
+- **Slice 1 (Script Parameterization):** 6 scripts parameterized — scaffold-service-data.py (owner_title), scaffold-city-data.py (href-prefix + optional EV fields), scaffold-client-data.py (credentials checklist filtering), generate-imagery-prompts.py + generate-and-distribute-heroes.py (external prompt files), scaffold-page.py + electrician profile (CR-072 matrix_section_sequence from profile)
+- **Slice 2 (Internal Links + OQL):** Defined restaurant internal-link axis model (Axis N — flat cross-page navigation); adapted insert-internal-links.py with --business-type dispatch; added "Restaurant fixed-list page" entry to OQL spec-routing-table
+- **Slice 3 (Capstone Orchestrator):** Extended client-seo-onboarding SKILL.md v1.8→v1.9 with business-type routing table — ONE path routes electrician or restaurant by reading business_type from client config
+- **Carried-forward items closed:** CR-072 (section sequence from profile), CR-082-lesson (CREDENTIALS_CHECKLIST parameterization)
+- Independent review: 4 rounds total (S1: 2 rounds [BLOCKING on missing tests, then PASS], S2: 1 round [PASS], S3: 1 round [PASS])
+
+### Decisions Made
+- **Restaurant link model = Axis N (flat cross-page)** — restaurants have no service×city matrix, so Axes A/B/C don't map. Axis N iterates page-model.json's pages[] list for cross-page navigation proposals.
+- **"Flag + filter" pattern for type-specific constants** — `applies_to` tags on shared lists (CREDENTIALS_CHECKLIST), filtered by `get_X_for_type(business_type)`.
+- **Profile-declared section sequence (CR-072)** — `matrix_section_sequence` array in content-sections.json, engine reads with `.get()` + fallback. New matrix types reorder by editing JSON alone.
+- **Orchestrator routing via SKILL.md table, not code fork** — per-step routing table maps each step to the correct flags for each business_type. No separate restaurant orchestrator needed.
+
+### Artifacts Produced
+- `scripts/scaffold-service-data.py` — owner_title parameterization
+- `scripts/scaffold-city-data.py` — --href-prefix, --business-type
+- `scripts/scaffold-client-data.py` — CREDENTIALS_CHECKLIST applies_to + get_credentials_for_type()
+- `scripts/generate-imagery-prompts.py` — --service-prompts-file
+- `scripts/generate-and-distribute-heroes.py` — --service-prompts-file
+- `scripts/scaffold-page.py` — _render_matrix_section() dispatch, profile-driven sequence
+- `scripts/profiles/electrician/content-sections.json` — matrix_section_sequence array
+- `scripts/insert-internal-links.py` — check_axis_n(), detect_fixed_list_context(), --business-type dispatch
+- `skills/output-quality-loop/references/spec-routing-table.md` — Restaurant fixed-list page entry
+- `skills/client-seo-onboarding/SKILL.md` — v1.9 business-type routing
+- `scripts/tests/test_btf3_slice1_generalization.py` — 6 tests
+- `scripts/tests/test_btf3_slice2_internal_links.py` — 6 tests
+- `scripts/tests/test_btf3_slice3_orchestrator.py` — 6 tests
+- `second-brain/05_shared-intelligence/lessons/lesson-btf-wave3-retro.md` — Wave 3 retro
+
+### Key Insights
+- Wave 3 was mechanical parameterization on a well-structured codebase — the payoff of Waves 1-2 doing the architectural heavy lifting
+- The "add a new type" procedure is now clear: create profiles/<type>/ + client config → scaffold-page.py produces pages with zero engine changes
+- Every script followed the same parameterization shape: rename constant → add flag → thread through callers → backward-compat fallback
+
+### Next Session Should Start With
+- Wave 4 planning: select a third business type (plumber, HVAC, or another local service) to validate that the pattern generalizes beyond 2 types
+- Author the "add a new type" playbook in second-brain/05_shared-intelligence/patterns/
+
+### Open Questions For Next Session
+- Should restaurant brief templates be operator-authored content or auto-generated from a discovery call transcript? (Honest limit from Wave 3)
+- Which third type best tests the profile schema's flexibility? (A matrix-type like plumber would test CR-072's section reordering; a fixed-list type like dentist would test the restaurant path)
+
+---
+
+## 2026-06-23 — [RGH-12] Auto-infer reviewer role from gate-clearing (Claude Code in VS Code)
+
+**Duration:** ~1.5h
+**Mode:** implementation
+**Interface:** Claude Code in VS Code
+
+### What Happened
+- Extended `classify_session_role()` with signal (b): auto-infer reviewer role from gate-clearing records — a session is classified `reviewer` if any other session's reviewed ledger contains an entry with `reviewer_session == self`
+- Extracted `_check_marker_signal()` (signal a, RGH-11) and added `_check_gate_clearing_signal()` (signal b, RGH-12) with early-exit glob + process-lifetime cache
+- Built `is_bash_reviewer_doc_write()` (RGH12-6): exempts reviewer Bash whose only write targets are known reviewer-working-doc paths (firing tracker, catch register, verdict files, reviewer execution logs) — strict B3 guard ensures compound commands with any non-doc write still gate
+- Updated `check_gate()` session-level exemption to cover both `is_bash_entry_write_safe()` (RGH-11) and `is_bash_reviewer_doc_write()` (RGH12-6)
+- Added 38 new tests: auto-inference unit (6), adversarial no-bypass (6), real-runner replay of BTF-W3/MCD-CR-075 scenarios (3), reviewer-doc-write unit (13), integration (4), compound-bypass guard (6)
+- Independent review PASS (1 round, 2 advisories: test count discrepancy in summary + negative cache re-scan design note)
+
+### Decisions Made
+- **Glob approach** for signal (b) — scan `*-reviewed.jsonl` excluding own session's ledger. Bounded: `iglob` + line-by-line + early exit on first match + process-lifetime positive cache
+- **Positive-only cache** — confirmed reviewer status cached forever (can't un-clear a gate); negative results re-scanned (reviewer may not have cleared yet). ADV-2 noted this as a design tradeoff vs efficiency
+- **Reviewer-doc Bash write as separate function** (not folded into `is_bash_entry_write_safe`) — cleaner separation: write-safe = no writes at all; doc-write = writes only to known reviewer paths. Both checked in `check_gate()` for verified reviewer sessions only
+- **B3 guard strict**: every compound segment must be either read-only or a reviewer-doc write. One non-doc write anywhere → entire command gates
+
+### Artifacts Produced
+- `repos/ai-agency-core/scripts/mandatory-review-gate/engine.py` — `_check_marker_signal()`, `_check_gate_clearing_signal()`, `_gate_clearing_signal_cache`, updated `classify_session_role()`, `_REVIEWER_DOC_WRITE_PATTERNS`, `_extract_write_target()`, `_is_segment_reviewer_doc_write()`, `is_bash_reviewer_doc_write()`, updated `check_gate()`
+- `repos/ai-agency-core/scripts/mandatory-review-gate/test_session_tagging.py` — +38 tests (95 total, 156/156 with RGH-10 regression)
+
+### Key Insights
+- The auto-inference is truly forget-proof: the reviewer self-qualifies by doing its actual job (logging the producer's PASS). The BTF-W3 and MCD CR-075 scenarios that needed manual gate-skips would now resolve automatically
+- Honest limit documented: a producer that can write arbitrary files into `.review-gate/state/` could forge a reviewed-ledger entry, but the write itself is dirty-ledger-tracked and the scoped exemption still only covers Bash
+- RGH12-6 (reviewer-doc Bash writes) was a scope addition mid-build — the live BTF-W3 `cat >>` case showed the gap between RGH-10's tool-path exemption (Write/Edit only) and Bash redirect writes to the same paths
+
+### Next Session Should Start With
+- Update CR-010/044/054 notes in catch register to reference RGH-12
+- Update independent-reviewer-mandate §0 to note registration becomes optional once RGH-12 is live
+- Commit + push
+
+### Open Questions For Next Session
+- None — clean build, clean review
+
+---
+
 ## 2026-06-22 — [RGH-11] Session-level reviewer tagging (Claude Code in VS Code)
 
 **Duration:** ~2h
