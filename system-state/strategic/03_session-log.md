@@ -4,6 +4,88 @@
 
 ---
 
+## 2026-07-03 — EV-FU2 + EV-FU3: Review shortcodes + hours 24/7 (Claude Code in VS Code)
+
+**Duration:** ~45 min
+**Mode:** implementation
+**Interface:** Claude Code in VS Code
+
+### What Happened
+- Converted hardcoded review counts (87/148) → `[ev_review_count]`/`[ev_review_rating]` shortcodes on 43 WP pages (25 Core-30 + 7 hubs + 6 A3 + 5 Wave-1) via REST API
+- Replaced `openingHoursSpecification` in JSON-LD on all 43 pages from Mon-Fri 08:00-18:00 + Sat 09:00-16:00 → 7-day 00:00-23:59
+- Updated `contact/page.tsx` and `client-ev-electric-services.json` hours to 24/7
+- Produced operator Elementor guide for homepage/About page hours (operator executed + verified same session)
+- Filed EV-FU5 (Yoast meta-description stale review count sweep — reviewer catch)
+- Full 43/43 verification sweep PASS
+
+### Decisions Made
+- Scope expanded from "~25 Core-30" to 43 pages after auditing all page types (hubs, A3, Wave-1 all had same issues)
+- Schema `reviewCount`/`ratingValue` NOT edited per-page (FU1 Snippet 2 content filter handles at render time)
+- Homepage NOT REST-written per CR-146 precedent — operator Elementor guide instead
+
+### Artifacts Produced
+- `outputs/ev-fu2-fu3-convert.py` — conversion script (credentials redacted post-review)
+- `outputs/ev-fu2-fu3-results.json` — per-page results
+- `outputs/ev-fu3-homepage-hours-operator-guide.md` — operator Elementor guide
+- `repos/ev-electric-services/.kos/execution-logs/execution-log-2026-07-03-ev-fu2-fu3-review-shortcodes-hours-24-7.md`
+- Register rows EV-FU2, EV-FU3 → applied; EV-FU5 filed (new)
+- Wave-status updated
+
+### Key Insights
+- Regex patterns for HTML content must account for inline tags (`<strong>`, `<em>`) wrapping target text — C30-08 missed on first pass, caught by verification sweep
+- Always audit ALL page types when the task names a subset — 18 additional pages (hubs, A3, Wave-1) had the same issues
+- The full-sweep verification step is load-bearing — it caught the C30-08 miss that the conversion script's patterns didn't
+
+### Next Session Should Start With
+- EV-FU5 (Yoast meta-description sweep) if prioritized
+- Wave 2 differentiation planning if operator directs
+
+### Open Questions For Next Session
+- None — FU1-FU4 all closed, FU5 queued
+
+---
+
+## 2026-07-03 — CR-146 Golden Services cross-client leak fix (Claude Code in VS Code)
+
+**Duration:** ~45 min
+**Mode:** implementation
+**Interface:** Claude Code in VS Code
+
+### What Happened
+- Verified live leak state on evelectric.pro: 56 `goldenservices.us` references per page (36 Manrope + 18 Syne @font-face filesystem paths + 2 `Golden-Services-02.png` logo refs returning 404)
+- Exhaustively explored all REST API paths for programmatic fix — `elementskit-template`, `/elementor/v1/documents`, Customizer theme_mods — all dead ends (template `_elementor_data` not `show_in_rest`, no Elementor edit endpoint, BSR wp-admin only)
+- Diagnosed why operator's prior BSR attempt failed: Elementor JSON uses escaped forward slashes (`https:\/\/`); prior search used unescaped URLs → 0 matches
+- Produced 3-option remediation guide (Hostinger file copy / BSR with JSON-escaped strings / Elementor editor) + Customizer Typography font fix
+- Operator executed fixes in wp-admin: logo via Elementor editor (header Nav Menu widget Mobile Menu Logo + footer broken Image widget deleted), fonts switched to Inter across ~12 Customizer typography locations
+- Independent reviewer (session 484e159f) verified: 0 goldenservices refs on all 8 pages curled (homepage + 3 Wave-1 + 3 Core-30 + 1 hub). CR-146 closed.
+
+### Decisions Made
+- **All fixes operator-manual.** No REST/programmatic path exists for ElementsKit templates or Customizer theme_mods — confirmed by enumerating every WP REST route.
+- **Fonts switched to Inter** (not re-selecting Manrope/Syne from Google Fonts) because Kirki's font-download cache would have re-served the stale goldenservices.us paths.
+- **Footer logo deleted, not replaced.** The footer's broken Image widget was redundant — removing it was cleaner than re-pointing it.
+
+### Artifacts Produced
+- Updated `CR-146-golden-services-leak-fix.md` (status: resolved, with as-executed deltas)
+- `execution-log-2026-07-03-cr146-golden-services-leak-fix.md`
+- `pattern-wordpress-cloned-site-cross-client-leak-remediation.md` (SOP pattern, operator-authored)
+- `_deployment-status.md` annotated with CR-146 + font leak status
+- Catch register CR-146 row updated (Open → Resolved with LU-Q4 evidence)
+
+### Key Insights
+- BSR on Elementor data requires JSON-escaped search strings — the escaped-slash mismatch is a silent failure that looks like "BSR didn't find it" when really the search string was wrong.
+- The font leak wasn't just 2 font families — it was ~12 separate Customizer typography locations (body, headings, buttons, nav, etc.) all pointing at the cloned site's paths. A checklist that says "fix body + heading fonts" undercounts.
+- Kirki caches downloaded font files — even after fixing the Customizer source setting, re-selecting the same font family can re-serve the cached broken files. Switching to a different family (Inter) avoids this.
+
+### Next Session Should Start With
+- Execute remaining EV follow-up items (EV-FU2: ~25 older Core-30 pages with hardcoded review count, EV-FU4 completion)
+- CR-147: llms.txt + robots.txt AI-crawler allowlist (one-time, operator file manager)
+- Wave-1 content rebuild execution (CR-145 — the actual brief-driven page rebuilds)
+
+### Open Questions For Next Session
+- Does Kirki's font cache clear on its own after Customizer changes, or is there a manual purge step? (Relevant if Manrope/Syne are ever re-added.)
+
+---
+
 ## 2026-07-03 — [client-schema-sync] Skill Build (Claude Code in VS Code)
 
 **Duration:** ~3 hours
