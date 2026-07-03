@@ -1,11 +1,31 @@
 # Current Focus
 
-**Last Updated:** 2026-04-22
-**Current Week:** Week 1 of resume-saas MVP build
+**Last Updated:** 2026-07-03
+**Current Week:** "Automatable by default" sprint + client growth
 
 ## This Week's Objective
 
-Scaffold resume-saas frontend and wire it end-to-end to the Flask backend. Stages 1 through 3.5 shipped 2026-04-21. Stage 4a substantially complete as of 2026-04-22 — review screen three-pane layout, proposal cards, Toggle All, multi-level undo, Clear all edits, applyProposals defensive fallbacks, layout fixes all shipped. BLOCKED on freeform editing in the middle pane: contentEditable approach proved structurally unfit. Next session starts with Slate.js migration of ProposedPane per `repos/resume-saas/docs/stage-4a-slate-migration-plan.md`.
+"Automatable by default" foundation sprint — fix gate friction + integrity (RGH-14/15/17), build productization-readiness system (PR-1), and run parallel tracks: IDX-1 (indexation diagnosis) + GIT-GATE (autonomous commits). Then skill batch → S&H focused page build.
+
+## Completed 2026-06-25
+
+### [IDX-1] Indexation diagnosis + URL-Inspection auth fix + index-status-diagnose skill
+- [x] Phase 1: Fixed URL Inspection API auth scope (ADC re-auth with `webmasters` scope — A2's diagnosis was wrong, gcloud supports it). Real HTTP 200 on EV + S&H. CG-001 root cause resolved.
+- [x] Phase 2: Per-page index status via URL Inspection on 55 EV + 35 S&H URLs. EV: 11 indexed / 44 not (crawl-budget, zero content rejection). S&H: 14 indexed / 21 not (12 crawled-not-indexed = authority gate).
+- [x] Phase 3: Blocker verification on 5 S&H sample pages. No hard blockers (noindex/robots/sitemap/thin-content all clean). Canonical tag inconsistency flagged (CDN hypothesis). API canonical data absent for non-indexed pages (known limitation).
+- [x] Phase 4: `index-status-diagnose` skill v1.0 — `gsc_url_inspection.py` engine + SKILL.md. Both clients proven from config. CG-001 resolution recorded for PR-1.
+
+## In Progress (sprint-level)
+
+- [ ] [RGH-14]+[RGH-15]+[RGH-17] gate friction + integrity (Wave A step 1) — in-flight, separate session
+- [ ] [MCD-P4] mission-control-dashboard Phase 4 — Waves 4-5 remain (notifications, cost display)
+- [ ] [A4→FOCUS] S&H focused page build — unblocked by IDX-1 (authority gate, not content issue); still needs CR-102 independent review of expansion candidates
+
+## Next Up
+- [ ] [PR-1] Productization-readiness system (Wave A step 2 — after RGH-14/15/17)
+- [ ] [GIT-GATE] Autonomous commit service (parallel track after PR-1)
+- [x] [client-schema-sync] skill build — SHIPPED 2026-07-03. Independent review PASS 2 rounds [2,0]. Engine + 3 profiles + SKILL.md v1.0.0.
+- [ ] [G12] local-SEO growth orchestrator (Wave C, after client-schema-sync)
 
 ## In Progress
 

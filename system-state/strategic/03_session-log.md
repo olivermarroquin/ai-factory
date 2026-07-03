@@ -4,6 +4,51 @@
 
 ---
 
+## 2026-07-03 — [client-schema-sync] Skill Build (Claude Code in VS Code)
+
+**Duration:** ~3 hours
+**Mode:** implementation
+**Interface:** Claude Code in VS Code
+
+### What Happened
+- Surveyed `client-seo-onboarding` (11-step one-time pipeline), Core-30 scaffold/publish scripts, `gate-peer-reviewer` (21 gate types). Decided: NEW separate skill (different trigger cadence, data sources, execution model vs. onboarding). Operator confirmed.
+- Built agnostic engine `schema_sync_engine.py` (~580L) with 5 CLI commands: `audit`, `verify`, `sync-rating`, `inject` (HowTo+Speakable), `inject-lb` (LocalBusiness via keelworks plugin). Zero hardcoded client values.
+- Created 3 per-client profiles: EV (41 pages, all WP IDs), S&H (30 pages, WP IDs pending), Asian Delight (4 pages, Restaurant type — 2nd-client proof).
+- Wrote SKILL.md v1.0.0 with config schema, safety rules, human-in-loop steps, gate integration.
+- Independent review Round 1 caught 2 BLOCKING: (1) `safe_json_for_script` not implemented (Python json.dumps does NOT escape `</script>`), (2) `skip_widget_patterns` unenforced in engine. Both fixed and verified.
+- Independent review Round 2: PASS (0 blocking). 17 unit tests + 8 adversarial reviewer tests all PASS.
+- Full Productize-tier DoD B1-B6 completed in execution log.
+
+### Decisions Made
+- **Separate skill, not extension of client-seo-onboarding.** Different trigger cadence (recurring vs one-time), data sources (live WP vs intake forms), execution model.
+- **Profile per client, not per business type.** Page lists, selectors, WP IDs are per-client; business-type differences come from the client config's `business_type` field.
+- **`safe_json_for_script()` replaces `</` with `<\/`** — the standard web-safe JSON-in-HTML approach, applied to all 7 serialization paths (script tags + _kw_jsonld meta).
+- **`filter_skip_widgets()` is nesting-aware** — tracks open/close tag depth to avoid eating sibling elements.
+
+### Artifacts Produced
+- `repos/ai-agency-core/scripts/schema_sync_engine.py` — agnostic engine (~580L)
+- `skills/client-schema-sync/SKILL.md` — skill definition v1.0.0
+- `skills/client-schema-sync/references/profiles/ev-electric-services.json` — 41 pages
+- `skills/client-schema-sync/references/profiles/s-and-h-contracting.json` — 30 pages
+- `skills/client-schema-sync/references/profiles/asian-delight.json` — 2nd-client proof (Restaurant)
+- `skills/client-schema-sync/execution-logs/execution-log-2026-07-03-client-schema-sync-skill-build.md` — B1-B6 DoD
+
+### Key Insights
+- Python's `json.dumps` does NOT escape `</script>` — a common false assumption. The `safe_json_for_script` post-processing is mandatory for any JSON placed in `<script>` tags.
+- `fnmatch.translate()` produces `(?s:...)` which makes `.*` match across quote boundaries in HTML attributes — manual glob-to-regex conversion is safer for HTML class matching.
+- The independent review caught both safety defects that the producer missed — validates the separate-session reviewer model.
+
+### Next Session Should Start With
+- [G12] local-SEO growth orchestrator scoping/build (composes client-schema-sync + other G-series skills)
+- G-schema gate type registration in `gate-type-registry.md` (tracked follow-up)
+- S&H WP page ID population (human-in-loop step)
+
+### Open Questions For Next Session
+- Should G-schema be a registered gate type or handled by G-default?
+- S&H profile needs WP IDs populated before sync-rating/inject can run
+
+---
+
 ## 2026-06-23 — [BTF-3] Full Pipeline Generalization — Wave 3 (Claude Code in VS Code)
 
 **Duration:** ~4 hours
