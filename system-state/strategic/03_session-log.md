@@ -4,6 +4,81 @@
 
 ---
 
+## 2026-07-05 — Session End Protocol v2 redesign + build (Cowork)
+
+**Duration:** ~2 hours
+**Mode:** planning + implementation
+**Interface:** Cowork
+
+### What Happened
+- Investigated the April-era Session End Protocol vs. the handoff Closing Protocol — confirmed two overlapping close-out systems and a two-thirds-stale `02_current-focus.md` as the cause of every run's close-out stall
+- Designed + shipped v2: canonical close definition at `second-brain/_meta/session-close-protocol.md` (single source of truth), CLAUDE.md rewritten as dispatcher (Path A handoff / Path B ad-hoc), design spec at `_meta/specs/session-end-protocol-v2-spec.md`
+- Added three mandatory close steps everywhere (template + tracker how-to): 1b quality + tier verification (PR-1 DoD, output-quality-loop Mode-4 eval on every deliverable, capability-gap surfacing), 3c project door-card (`_chat-status.md`) update feeding the aggregator → operations-planner → MCD roll-up chain, 6b drift sweep
+- Slimmed `02_current-focus.md` to a current-only sprint card; archived the April resume-saas plan verbatim to `repos/resume-saas/.kos/specs/archived-2026-04-mvp-current-focus-plan.md`; corrected stale statuses (PR-1/GIT-GATE/RGH shipped 07-02)
+
+### Decisions Made
+- Dispatcher pattern over merged mega-protocol; canonical-doc-wins precedence over verbatim-rendered copies
+- `03_session-log.md` kept (only cross-project narrative); `02_current-focus.md` touched only on sprint-level change
+- Every close step is a vault-file write — Hermes/fleet forward-compatibility by construction; v2 doc seeds FLEET-2
+
+### Artifacts Produced
+- `second-brain/_meta/session-close-protocol.md` (NEW), `second-brain/_meta/specs/session-end-protocol-v2-spec.md` (NEW), CLAUDE.md rewrite, closing-protocol-template v2 steps, tracker how-to (pass 365), slim 02_current-focus, resume-saas archive, execution log
+
+### Key Insights
+- `02_current-focus.md` and `03_session-log.md` were both edited by parallel sessions mid-build — live proof that chat state belongs in the tracker/door-card layer, not strategic files
+- The roll-up chain (door cards → aggregator → planner → dashboard) was already built but had no write-side guarantee; step 3c closes that
+
+### Next Session Should Start With
+- Optional: independent review of the v2 protocol docs; door-card backfill sweep (FU-2 in execution log)
+
+### Open Questions For Next Session
+- FU-2 door-card backfill: one-time sweep or lazily on first close per project?
+
+---
+
+## 2026-07-05 — [HERMES-P3-W1] Phase 3 Wave 1: Hooks + Telegram Home Channel (Claude Code in VS Code)
+
+**Duration:** ~2h
+**Mode:** implementation
+**Interface:** Claude Code in VS Code
+
+### What Happened
+- Verified v0.18.0 substrate reality against upstream source (CR-163 class): `cron:complete` event DOES NOT EXIST (cron delivery is built-in via `deliver:` param); `/sethome` is the home-channel mechanism (env var, not config.yaml); FETCH_HEAD mtime replaces commit-date freshness per operator design input
+- Built 1 hook (boot-health-check: `gateway:startup`, 3 health checks — cron failures, FETCH_HEAD staleness, systemd units — Telegram alert on issues, silent on all-clear)
+- Did NOT build cron-delivery hook (substrate handles it natively)
+- Wrote operator steps document (6-step paste-safe guide)
+- Filed CR-178 (gh-api read-only gate friction — recurring false-positive class)
+- All 5 ACs verified with raw on-box evidence
+- Independent peer-review PASS, 0 blocking findings
+
+### Decisions Made
+- `/sethome` over config.yaml — substrate reality: config.yaml has no Telegram home channel key; `/sethome` persists to `.env` and updates live config
+- FETCH_HEAD mtime over commit date — operator caught that commit date measures vault activity, not sync health; false-alarms on quiet days
+- urllib.request over httpx for Telegram API — stdlib-only dependency for hook sandbox compatibility
+- No cron-delivery hook — `cron:complete` event doesn't exist in v0.18.0; delivery is a built-in primitive
+- Sync handler (not async) — all operations are fast (stat, subprocess, urllib)
+
+### Artifacts Produced
+- `skills/hermes-hooks/boot-health-check/HOOK.yaml` + `handler.py` — gateway:startup hook
+- `skills/hermes-hooks/OPERATOR-STEPS.md` — operator placement + verification guide
+- `second-brain/_meta/execution-logs/exec-log-2026-07-05-hermes-p3-w1-hooks-telegram.md`
+- CR-178 in catch register (gh-api read-only gate friction)
+- Event-log rows (code-complete + shipped)
+
+### Key Insights
+- Substrate-reality verification (CR-163 class) is load-bearing: 2 of 3 handoff assumptions were wrong (no `cron:complete` event, home channel is env var not config.yaml). Building without verification would have produced dead code.
+- FETCH_HEAD mtime is a better sync-health signal than commit date — quiet repos false-alarm on commit-date freshness. Operator caught this during VERIFY-AT-SPAWN.
+- v0.18.0 hooks are lightweight (plain Python in-process, fire-and-forget) — no need for external dependencies. stdlib urllib.request is sufficient for Telegram Bot API.
+
+### Next Session Should Start With
+- [HERMES-P3-W2] Curator fix + Errno-13 ownership + RGH-3 on-box deployment + Phase 3b handoff draft
+
+### Open Questions For Next Session
+- Cron output directory structure assumption in handler.py (`~/.hermes/cron/output/<job>/<timestamp>/result.json`) — verify against v0.18.0 during W2
+- Box needs reboot (system restart required + 12 pending updates) — fold into W2's apt/security-updates operator task
+
+---
+
 ## 2026-07-03 — EV-FU2 + EV-FU3: Review shortcodes + hours 24/7 (Claude Code in VS Code)
 
 **Duration:** ~45 min
