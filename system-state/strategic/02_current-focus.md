@@ -26,11 +26,13 @@
 - [x] [client-schema-sync] skill v1.0.0 — SHIPPED 07-03 (pass 354); 2nd-client proof PASS
 - [x] [IDX-1] Indexation diagnosis + index-status-diagnose skill v1.0 — SHIPPED 06-25
 - [x] [EV-DIFF] Wave-1 published 07-01; turnkey T1-T5 complete 07-03; EV-FU1–FU4 done 07-03 (FU5 queued)
-- [x] Session End Protocol v2 — canonical close doc + CLAUDE.md dispatcher + this file slimmed (07-05, this build)
+- [x] Session End Protocol v2 ARC COMPLETE — canonical close + dispatcher + FU3 independent review PASS + FU2 door-card backfill (14/14, aggregator lit) + workflow conventions (relay/pair-spawn/gate-skip/commit-surface) + all repos git-tracked on GitHub (07-05/06)
+- [x] [FLEET-DECOMP] — FLEET-1..6 authored + registered (pass 376); Fleet program ACTIVE (07-06)
 
 ## Next Up
 
 - [ ] Dispatch pending independent reviews: RGH-16/RO-FIX, EV-DIFF T3, MI-8 Chat 2 (highest-leverage per execution-plan-2026-07-03)
+- [ ] [RGH-CR219] gate plumbing exemption — pair spawned 07-06 (verify Opening Protocol ran: handoff still queued at SEP close) → then [GIT-GATE-LIVE] (sequential) → then [FLEET-1] (pair staged; FLEET-3 before OP-2 spawns)
 - [ ] [HERMES-P3] W2 — ready to spawn (W1 shipped 07-05)
 - [ ] [G12] local-SEO growth orchestrator (Wave C — unblocked by client-schema-sync)
 - [ ] [EV-FU5] Yoast meta-description stale review-count sweep

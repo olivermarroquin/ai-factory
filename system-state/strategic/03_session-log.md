@@ -4,6 +4,38 @@
 
 ---
 
+## 2026-07-06 — SEP-v2 arc completion + workflow conventions + queue staging (Cowork, same chat as 07-05 entry)
+
+**Duration:** ~6 hours across two days
+**Mode:** implementation + orchestration
+**Interface:** Cowork (chat `session-end-protocol-v2-202607052100` — continuation of the 07-05 v2 build entry below)
+
+### What Happened
+- Shepherded [SEP-FU3] (independent review, PASS-WITH-FINDINGS, all findings fixed + re-verified) and [SEP-FU2] (13 door cards, aggregator lit, QC PASS) through spawn → relay → close
+- Shipped the manual-workflow conventions: relay files (+ machine-output rule, FINAL signal, two-line tell-block, bare-line commands, reviewer gate-clearing duty), pair-spawn launcher (slug mode, one command → two prompted tabs), gate-skip script convention, terminal-copy commit rule, tidy.sh clipboard cleaner
+- Queued the permanent-fix pipeline: [RGH-CR219] (gate plumbing whitelist + compact 8-line hook message + dedupe/recursion fix, Parts A-C), [GIT-GATE-LIVE] (staged shadow-mode rollout), [FLEET-DECOMP] (executed same day by its own chat — FLEET-1..6 authored + registered, pass 376)
+- All 3 git-less repos onto GitHub (dad-businesses, keelworks new; hire-relay rebased onto its existing v0.7 history, case-c, no force); `project-git-init.sh` promoted as the reusable engine (collision branch validated live)
+
+### Decisions Made
+- Gate never auto-trusts model "plumbing" claims — automation = deterministic gate-side classification (CR219 Part A), interim = operator-run skips with the discrimination rule
+- Reviewer owns gate-clearing (log-review-pass) on verified deliverables; operator relays pointers only
+- Repo bootstrap: .kos-only initial commits, WIP never swept; skill path = fold into app-factory/init-project-vault (spec item 8)
+
+### Artifacts Produced
+- Conventions in CLAUDE.md (relay/pair-spawn/skip/commit-surface rules); spawn-pair.sh + project-git-init.sh + tidy.sh; handoffs RGH-CR219 + GIT-GATE-LIVE + FLEET-DECOMP; spec v2.1 improvement queue items 1-8; spawn pairs staged (rgh-cr219, git-gate-live, fleet-1 via FLEET-DECOMP)
+
+### Key Insights
+- Every operator friction traced to one root: text traveling through clipboards/terminals instead of files — the relay/script/launcher conventions are all the same fix, and all retire into FLEET
+- Drift-sweep-at-close caught a live opening-gate gap at this very close (rgh-cr219 spawned but still status: queued) — spec item 1 justified by its own close
+
+### Next Session Should Start With
+- Verify rgh-cr219 producer ran its Opening Protocol (flip queued→active); then GIT-GATE-LIVE after CR219 closes; then spawn-pair.sh fleet-1 (FLEET-3 before OP-2)
+
+### Open Questions For Next Session
+- GIT-GATE-LIVE AC-5: operator push-behavior decision (auto-push vs operator-push) — Oliver decides during that run
+
+---
+
 ## 2026-07-05 — Session End Protocol v2 redesign + build (Cowork)
 
 **Duration:** ~2 hours
