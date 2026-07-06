@@ -4,6 +4,80 @@
 
 ---
 
+## 2026-07-06 — EV post-publish cleanup: Wave-2 + Wave-3 (10 pages) (Claude Code)
+
+**Duration:** ~1 hour
+**Mode:** implementation (post-publish cleanup)
+**Interface:** Claude Code (producer session, paired with independent reviewer)
+
+### What Happened
+- GSC URL Inspection baseline on 10 pages: 0/10 indexed (3 discovered-not-indexed, 7 unknown-to-Google)
+- Sitemap verified: 10/10 present in page-sitemap.xml
+- Indexing API best-effort fired on all 10 (HTTP 200; service pages = best-effort)
+- CR-201 resolved: 10 vienna-named image refs replaced with city-neutral copies on 5 Wave-3 pages (1 new WP media upload, 3 reused from Wave-2)
+- Deployment status ledger updated honestly — actual coverageState, no overstated claims
+- Operator manually requested indexing on all 10 URLs in GSC UI
+- Independent review PASS (0 blocking, 0 advisory)
+
+### Decisions Made
+- Reused existing Wave-2 city-neutral images (3 of 4) rather than uploading duplicates
+- Logged Indexing API as best-effort throughout (honest framing)
+
+### Artifacts Produced
+- Updated `_deployment-status.md` (10 rows + CR-201 resolved + totals)
+- Execution log: `execution-log-2026-07-06-ev-postpub-wave2-wave3-cleanup.md`
+- GSC report: `index-status-ev-electric-services-2026-07-06.{md,json}`
+- WP media: `electrical-troubleshooting-hero-v5-variant-1.webp` (WP 6692)
+
+---
+
+## 2026-07-06 — EV Wave-2: 5 new pages built + published (Claude Code in VS Code)
+
+**Duration:** ~4 hours (across 2026-07-05 build + 2026-07-06 fixes + publish)
+**Mode:** implementation
+**Interface:** Claude Code in VS Code
+
+### What Happened
+- Built 5 brand-new EV Electric service pages from reviewed Wave-2 content briefs using 5 parallel background agents
+- Each page uses a distinct template variant: Bethesda V2 project-spec, Gaithersburg V3 comparison, Annandale V4 local-guide, Falls Church V1 problem-first, Tysons EV V2 project-spec
+- Ran deterministic verification (placeholder sweep, asset-leak check, schema validation, shortcode presence, 24/7 hours, pricing-OFF dollar-sign sweep)
+- Ran measured word-similarity checks (Jaccard 3-word shingles, city names stripped) — all pairs under 40%
+- Falls Church required a full rewrite pass to drop similarity vs Fairfax from 45.3% to 12.1%
+- Applied punch-list fixes from independent reviewer: CR-190 (Gaithersburg NEC hedge), CR-191 (hub link), PL-1 through PL-4 (alignment, image sizing, Annandale opener reframe)
+- Applied CSS general-sibling rule for left-aligned sections; ran rendered-alignment auditor to 0 check-A FAILs
+- Published all 5 via Core-30 script (WP 6668-6672), flipped to publish status, GSC indexing submitted
+- Uploaded 3 city-neutral image copies to WP media (PL-5), repointed all 5 pages, re-published
+
+### Decisions Made
+- MD pages omit NEC 230.85/230.67 assertions (Montgomery County NEC edition unverified — hedged with "we include both regardless")
+- MD licensing says "Virginia-licensed Master Electrician" (Ahmad's MD reciprocal license unverified)
+- Pricing display OFF on all 5 pages (Ahmad's decision) — cost-education framing, zero dollar figures
+- Form 8911 stated as EXPIRED 2026-06-30 on Tysons EV page (6 mentions)
+- Dominion program mentioned but no dollar amounts (AI-asserted, CR-143)
+
+### Artifacts Produced
+- 5 HTML pages (draft-v1-WP-WRAPPED.html) in website-archive/new/core-30/ slots 31-35
+- 5 draft-v1.md metadata files
+- 6 execution logs in repos/ev-electric-services/.kos/execution-logs/
+- Deployment-status ledger updated with Wave-2 section (WP IDs 6668-6672)
+- 3 city-neutral images uploaded to WP media (2026/07/)
+
+### Key Insights
+- Parallel agent builds (5 agents) work well for volume but require a similarity rewrite pass — agents share phrasing patterns
+- The CSS general-sibling rule (.evp-heading-left ~ p, ~ ul) is load-bearing for left-aligned sections; the existing adjacent-sibling rule (+ p) only catches the first paragraph
+- WAF blocks large POST requests to the WP REST API; the publish script handles this but raw urllib does not
+
+### Next Session Should Start With
+- Recheck indexation on all 5 pages ~2026-07-20
+- Pre-publish verification items: Montgomery County NEC edition, Ahmad's MD license, Dominion program terms, panel price range, live review count
+- Hub pages (panel-upgrade hub WP 6348, ev-charger hub WP 6349) need new city links added
+
+### Open Questions For Next Session
+- Are the WPCode snippets (FU1) created yet? Review shortcodes show as literal text until snippets are active
+- Does Ahmad hold or has he applied for the MD reciprocal Master Electrician license?
+
+---
+
 ## 2026-07-06 — SEP-v2 arc completion + workflow conventions + queue staging (Cowork, same chat as 07-05 entry)
 
 **Duration:** ~6 hours across two days
