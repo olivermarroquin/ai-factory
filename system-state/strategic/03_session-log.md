@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-07-10 — Gate hardening round 2: CR-228/229/230 (Claude Code, paired)
+
+**Duration:** ~1 hour
+**Mode:** implementation (gate code hardening)
+**Interface:** Claude Code (producer, paired with independent reviewer)
+
+### What Happened
+- Implemented 5 fixes across the mandatory review gate system
+- Fix A (CR-228): reviewer pytest/unittest plumbing exemption with `reviewer_only` whitelist flag
+- Fix B (CR-229a): BLOCKING close-gap findings deterministic re-check in log-review-pass.py
+- Fix C (CR-229b): BLOCKING findings operator mirror file verification
+- Fix D (CR-229c): emergency-skip section omitted when deliverables > 0
+- Fix E (CR-230, operator-added): cd-prefix self-ref exclusion + force-deliverables content D-09
+- R1 BLOCKING on Fix A (compound-command smuggling bypass + cd-prefix false negative) — fixed R2
+- Independent review PASS R2, gate cleared, 39 new tests, 0 regressions
+
+### Decisions Made
+- `reviewer_only` flag on plumbing whitelist patterns rather than separate config or extending `is_bash_entry_write_safe`
+- Compound-command splitting for reviewer_only bash patterns (reuses `engine.split_compound()`)
+
+### Artifacts Produced
+- Updated engine.py, dirty-ledger-track.py, log-review-pass.py, mandatory-review-gate.py, plumbing-whitelist.yml
+- tests/conftest.py + tests/test_cr228_cr229.py (39 tests)
+- CR-228/229/230 filed in catch register (all Applied)
+- Execution log: `repos/ai-agency-core/.kos/execution-logs/execution-log-2026-07-10-gate-cr228-229-230.md`
+
+---
+
 ## 2026-07-06 — EV post-publish cleanup: Wave-2 + Wave-3 (10 pages) (Claude Code)
 
 **Duration:** ~1 hour
