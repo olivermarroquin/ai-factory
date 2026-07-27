@@ -86,6 +86,7 @@ Build a portfolio of proven apps and automations, then offer clients fast deploy
 - Full Video Intelligence pipeline (6-stage) — MVP version is enough
 - Operator tool expansion — wait until resume-saas teaches workflow patterns. Confirmed deferred 2026-04-21 during strategic review. Reassess Week 5.
 - Multi-agent coordination — not useful until Level 3 is real
+- File-based reviewer secret / token for gate approval — attempted 2026-07-27 and PROVEN FORGEABLE (any session can overwrite the on-disk secret file and self-authorize); reverted uncommitted. Do NOT re-attempt a filesystem-based secret. Unforgeable reviewer approval requires a trust anchor outside the model's filesystem reach — a separate approval process/service (IPC or remote). Tracked as the daemon follow-up in 02_current-focus.md; it is the real last gate before hands-off autonomy.
 
 ## Revenue Path
 - **Month 3-6:** First clients via portfolio demos

@@ -4,6 +4,33 @@
 
 ---
 
+## 2026-07-27 — Review-gate trust hardening marathon (Cowork strategic + Claude Code pairs)
+
+**Duration:** multi-session (07-10 → 07-27)
+**Mode:** strategic direction + paired-execution oversight (gate infrastructure)
+**Interface:** Cowork strategic surface directing Claude Code producer/reviewer pairs
+
+### What Happened
+- Began as workspace-root cleanup (_scratch/ convention); expanded into a full audit of whether the producer/reviewer gate can be trusted.
+- Adversarial red-team of the gate (isolated sandbox) confirmed 3 critical + several lesser forgery/classification vectors (CR-232..239).
+- Wave-1 hardening closed the dangerous-direction write-bypasses (python3 -c/heredoc, curl -o/wget misclassified as read-only).
+- Made the gate test suite honest (green=clean) by resolving/tagging ~18 stale tests (CR-107); confirmed no hidden real bugs (git-plumbing whitelist was intentional, RGH12-8).
+- Built a full-suite pre-commit hook — gate-code commits now mechanically run the whole suite and block on any red; it caught a real config bug on its first live run.
+- Migrated gate config YAML→JSON to drop the PyYAML dependency (the gate was crashing in its own no-PyYAML hook environment); config is now dependency-free and fails safe (CR-245).
+- Gave the commit-time gate the same bookkeeping/plumbing exemptions as the Stop hook (parity fix).
+- Attempted reviewer-identity (unforgeable + auto-register) via a file-based secret — proven forgeable (a session can overwrite the secret file and self-authorize), reverted uncommitted; the paired reviewer missed it. Lesson: _meta/analysis/reviewer-identity-file-secret-failure-2026-07-27.md.
+
+### Decisions Made
+- Full autonomy is the north star driving gate hardening; the forgery fix is therefore critical-path, not deferred.
+- File-based reviewer secrets do not work (forgeable on a shared filesystem). The real unforgeable fix is a separate approval process/service (daemon) — the true last gate before hands-off autonomy.
+- Captured the Tool Trust Loop (desk audit → sandbox red-team → harden → re-run) as a reusable workflow.
+
+### What To Do Next
+- Build the separate approval service (daemon) — the real unforgeable-reviewer fix.
+- Re-run gate-redteam as Phase-4 acceptance once the daemon lands.
+
+---
+
 ## 2026-07-10 — Gate hardening round 2: CR-228/229/230 (Claude Code, paired)
 
 **Duration:** ~1 hour

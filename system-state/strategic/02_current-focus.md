@@ -1,6 +1,6 @@
 # Current Focus
 
-**Last Updated:** 2026-07-05
+**Last Updated:** 2026-07-27
 **Current Week:** "Automatable by default" sprint + client growth
 
 > **How to use this file (v2, 2026-07-05):** this is a slim, current-only sprint card — objective, sprint items, next up, blocked. Live chat state belongs in `second-brain/_meta/handoffs/_active-chats-tracker.md` (the source of truth for in-flight work); project detail belongs in each repo's `.kos/`. Update this file only when sprint-level state changes (something shipped, a new blocker, a priority shift) — per `second-brain/_meta/session-close-protocol.md`. Do not append per-project or per-chat detail here.
@@ -14,10 +14,9 @@
 - [ ] [MCD-P4] mission-control-dashboard Phase 4 — Waves 4-5 remain (notification multiplexing, cost display)
 - [ ] [A4→FOCUS] S&H focused page build — needs CR-102 independent review of expansion candidates (open since 06-24)
 - [ ] [RGH-16/RO-FIX] reviewer-orchestrator v3.0 — ready for independent review since 07-03
-- [ ] [EV-DIFF] Wave-2/Wave-3 build phase — briefs PASS (pass 360), build next
-
 ## Recently Shipped (this sprint)
 
+- [x] [EV-DIFF] Wave-2/Wave-3 COMPLETE — build + publish + post-publish cleanup all done 07-06; 10 pages live, CR-201 resolved, GSC baseline 0/10 indexed (recheck ~07-20), independent review PASS
 - [x] [SH-G1] sitewide-similarity-audit tool — SHIPPED + CLOSED 07-05 (pass 364); S&H 29/29 pages mean 73.5%, EV 2nd-instance PASS
 - [x] [HERMES-P3-W1] Hooks + Telegram home channel — SHIPPED 07-05, peer-review PASS 0 blocking (AC-1..AC-5)
 - [x] [PR-1] Productization-readiness system — SHIPPED + CLOSED 07-02 (pass 345)
@@ -28,10 +27,11 @@
 - [x] [EV-DIFF] Wave-1 published 07-01; turnkey T1-T5 complete 07-03; EV-FU1–FU4 done 07-03 (FU5 queued)
 - [x] Session End Protocol v2 ARC COMPLETE — canonical close + dispatcher + FU3 independent review PASS + FU2 door-card backfill (14/14, aggregator lit) + workflow conventions (relay/pair-spawn/gate-skip/commit-surface) + all repos git-tracked on GitHub (07-05/06)
 - [x] [FLEET-DECOMP] — FLEET-1..6 authored + registered (pass 376); Fleet program ACTIVE (07-06)
+- [x] [GATE-TRUST] Review-gate hardening marathon (07-10 → 07-27) — red-team adversarial audit (CR-232..239); Wave-1 dangerous-direction write-bypass fixes; test suite made honest green=clean (CR-107); full-suite pre-commit hook (mechanically enforces tests before gate-code commits); YAML→JSON dependency-free config so the gate can't silently degrade (CR-245); commit-time bookkeeping/plumbing exemption parity with the Stop hook. All committed + independently verified.
 
 ## Next Up
 
-- [ ] Dispatch pending independent reviews: RGH-16/RO-FIX, EV-DIFF T3, MI-8 Chat 2 (highest-leverage per execution-plan-2026-07-03)
+- [ ] Dispatch pending independent reviews: RGH-16/RO-FIX, MI-8 Chat 2 (highest-leverage per execution-plan-2026-07-03)
 - [ ] [RGH-CR219] gate plumbing exemption — pair spawned 07-06 (verify Opening Protocol ran: handoff still queued at SEP close) → then [GIT-GATE-LIVE] (sequential) → then [FLEET-1] (pair staged; FLEET-3 before OP-2 spawns)
 - [ ] [HERMES-P3] W2 — ready to spawn (W1 shipped 07-05)
 - [ ] [G12] local-SEO growth orchestrator (Wave C — unblocked by client-schema-sync)
@@ -42,6 +42,8 @@
 - [ ] [MI-8] Chrome-dependent collection (SAM.gov, GSA eLibrary, SBA DSBS) — deferred, not blocking
 - [ ] [MI-8] Cadence durable scheduling (monthly tool scan + quarterly re-score)
 - [ ] Operator decisions flagged expired 07-03: GBP-API application outcome (case 4-8814000041505), WF-14 git storage (open since 06-14)
+- [ ] [GATE-TRUST] Separate approval service (daemon) — the REAL unforgeable-reviewer fix. File-based secret approach was built, proven forgeable, and reverted 2026-07-27 (see _meta/analysis/reviewer-identity-file-secret-failure-2026-07-27.md). Trust anchor must live outside the model's filesystem (IPC/remote/OS-isolation). This is the true last gate before hands-off autonomy.
+- [ ] [GATE-TRUST] Re-run gate-redteam as Phase-4 acceptance once the daemon lands.
 
 ## Blocked / Waiting On
 
