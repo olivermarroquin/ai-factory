@@ -19,15 +19,21 @@
 - Migrated gate config YAML→JSON to drop the PyYAML dependency (the gate was crashing in its own no-PyYAML hook environment); config is now dependency-free and fails safe (CR-245).
 - Gave the commit-time gate the same bookkeeping/plumbing exemptions as the Stop hook (parity fix).
 - Attempted reviewer-identity (unforgeable + auto-register) via a file-based secret — proven forgeable (a session can overwrite the secret file and self-authorize), reverted uncommitted; the paired reviewer missed it. Lesson: _meta/analysis/reviewer-identity-file-secret-failure-2026-07-27.md.
+- Attempted an "unforgeable reviewer" fix via a file-based secret/token badge — PROVEN FORGEABLE (a session can overwrite the secret file and self-authorize) and reverted uncommitted; lesson in _meta/analysis/reviewer-identity-file-secret-failure-2026-07-27.md.
+- Shipped a gate friction fix (CR-244 reviewer-coordination exemption parity + CR-253 read-only classifier for mkdir/pytest); added operator-clear.py (CR-256) as the one-command operator path for misclassified blocks.
+- Ran a deterministic-check inventory (_meta/analysis/deterministic-check-inventory-2026-07-27.md): ~30 mechanical checks exist, ~11 enforced; highest-value gap is packaging ~5 hand-run grep checks into CLI validators.
 
 ### Decisions Made
 - Full autonomy is the north star driving gate hardening; the forgery fix is therefore critical-path, not deferred.
 - File-based reviewer secrets do not work (forgeable on a shared filesystem). The real unforgeable fix is a separate approval process/service (daemon) — the true last gate before hands-off autonomy.
 - Captured the Tool Trust Loop (desk audit → sandbox red-team → harden → re-run) as a reusable workflow.
+- REJECTED same-machine "unforgeable reviewer" approaches (daemon, file-based badge): a model running as the same user can forge its own approval or edit the gate's code, so any local approach is false confidence.
+- LOCKED the real path: move enforcement to GitHub PR + required CI checks (referee off the machine). Autonomy comes from mechanizing the quality bar into deterministic checks, not an unforgeable model reviewer; packaging the hand-run checks into CI validators also closes the forgery hole (CR-232) as a side effect.
 
 ### What To Do Next
-- Build the separate approval service (daemon) — the real unforgeable-reviewer fix.
-- Re-run gate-redteam as Phase-4 acceptance once the daemon lands.
+- Build GitHub PR + CI enforcement per _meta/handoffs/handoff-2026-07-27-github-pr-ci-enforcement.md — start in a fresh Cowork planning session (Phase 0: package hand-run G-default checks into CLI validators; Phase 1: CI pilot in ai-agency-core).
+- Do NOT rebuild the file-based reviewer badge/daemon (forgeable, reverted).
+- Optional/deferred: re-run gate-redteam as acceptance once CI checks exist.
 
 ---
 
