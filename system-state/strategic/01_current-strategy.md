@@ -45,10 +45,12 @@ Build a portfolio of proven apps and automations, then offer clients fast deploy
 | PDF export library (MVP) | @react-pdf/renderer (client-side) | Prioritizes export quality without forcing a library rewrite when pushing quality later. Declarative model handles pagination/typography/spacing. Bundle cost (~600kb over jspdf) acceptable given priority. pdf-lib rejected (optimized for modifying existing PDFs, not generating). |
 | PDF template (MVP) | Minimal — single column, Helvetica, heading + body hierarchy, no structured header block | Frontend holds resume as one string; richer template requires parsing section boundaries, which is data-model scope creep. Minimal renders plain text cleanly. Richer template is v1.1, gated on introducing structured resume data. |
 | Product framing (v1 vs v2) | v1 = AI proposal-review tool for resume tailoring. v2 = format-preserving resume editor (DOCX/PDF upload, format-intact export). | End-state vision is format preservation (upload own resume → apply proposals → download with original formatting). MVP cannot deliver this (paste-text discards formatting at input). Path C: ship MVP with honest framing; validate proposal-flow usefulness; invest in format preservation post-launch with real data. |
+| Quality enforcement architecture | GitHub PR + required CI status checks; trust anchor lives on GitHub's servers, outside any model's filesystem reach | Same-machine approaches (file-based secrets, daemons) proven forgeable 2026-07-27. First status check live on ai-agency-core 2026-07-28, proven green AND red. |
+| Local hooks vs CI | Local Stop/pre-commit hooks stay for fast in-session feedback; CI is the authoritative enforcement layer | Locked 2026-07-28. PR-diff resolver to be shared by git_hook_adapter and CI so dispatch logic never diverges. |
 
 ## Open Decisions (To Resolve As They Come Up)
 
-- CI/CD tool: GitHub Actions vs. Vercel built-in (decide at deploy time)
+- CI/CD tool: GitHub Actions vs. Vercel built-in — resolved for workspace/gate repos: GitHub Actions (live on ai-agency-core 2026-07-28); Vercel built-in remains an option for resume-saas frontend deploys only
 - Whether to expand operator tool after resume-saas ships (reassess Week 5)
 - Second portfolio app: wait for VIS output in Week 4 before deciding
 - Client outreach strategy: decide after 3 portfolio pieces exist
@@ -86,7 +88,7 @@ Build a portfolio of proven apps and automations, then offer clients fast deploy
 - Full Video Intelligence pipeline (6-stage) — MVP version is enough
 - Operator tool expansion — wait until resume-saas teaches workflow patterns. Confirmed deferred 2026-04-21 during strategic review. Reassess Week 5.
 - Multi-agent coordination — not useful until Level 3 is real
-- File-based reviewer secret / token for gate approval — attempted 2026-07-27 and PROVEN FORGEABLE (any session can overwrite the on-disk secret file and self-authorize); reverted uncommitted. Do NOT re-attempt a filesystem-based secret. Unforgeable reviewer approval requires a trust anchor outside the model's filesystem reach — a separate approval process/service (IPC or remote). Tracked as the daemon follow-up in 02_current-focus.md; it is the real last gate before hands-off autonomy.
+- File-based reviewer secret / token for gate approval — attempted 2026-07-27 and PROVEN FORGEABLE (any session can overwrite the on-disk secret file and self-authorize); reverted uncommitted. Do NOT re-attempt a filesystem-based secret. Unforgeable reviewer approval requires a trust anchor outside the model's filesystem reach — a separate approval process/service (IPC or remote). The daemon follow-up is now SUPERSEDED — the trust anchor is GitHub PR + required CI checks (see handoff-2026-07-27-github-pr-ci-enforcement.md); do not build a local approval daemon either.
 
 ## Revenue Path
 - **Month 3-6:** First clients via portfolio demos

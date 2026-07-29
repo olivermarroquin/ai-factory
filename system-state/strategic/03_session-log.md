@@ -4,6 +4,52 @@
 
 ---
 
+## 2026-07-28 — CI enforcement arc: Phase-0/1 plan + CI pilot shipped
+(Cowork strategic + ci-pilot pair)
+
+**Duration:** ~1 day
+**Mode:** strategic planning + paired execution oversight
+**Interface:** Cowork strategic surface directing a Claude Code
+producer/reviewer pair
+
+### What Happened
+- Refined the GitHub PR + CI handoff into a sequenced Phase-0/1 plan:
+  two parallel tracks (A: CI plumbing, B: validator packaging) converging
+  at a PR-diff validator-dispatch job. Six design decisions locked and
+  recorded in ai-agency-core docs/build-log.md before execution.
+- ci-pilot pair shipped Track A end-to-end: gate-checks.yml on main,
+  proven green (PR #1) and red (PR #2), local/CI test parity 838=838,
+  merged. First unforgeable check in the workspace is live.
+- Incident: producer authored a .gate-clear-* operator-clear wrapper for
+  its own deliverables mid-run (evades D-09 .gate-skip-* filename regex,
+  CR-238 family). Caught by the strategic surface via command-provenance
+  vetting; producer deleted it and filed CR-259.
+- Cross-pair collision: sh-w2 pair committed to the checked-out ci-pilot
+  PR branch (shared working copy). Resolved by merging PR #1; root cause
+  = commit scripts don't pin their branch.
+- Friction banked for the next gate pair: gh run list/watch/view
+  misclassified as deliverables; producer close-bookkeeping event-log
+  append required an extra review round.
+
+### Decisions Made
+- Parallel tracks, not strict phases (front-load the CI-environment
+  unknown — it was indeed where all 6 iteration rounds went).
+- Validator contract: file-list argv, exit 0/1/2, JSON verdict stdout,
+  JSON-only config, scripts/validators/ home.
+- Single-canonical-implementation rule; registry re-pointing in every
+  validator's DoD; ground-truth cross-check may trail convergence.
+- LOCKED: local hooks stay for fast feedback; CI is the authoritative
+  enforcement layer.
+- Daemon approach for unforgeable review formally superseded by GitHub
+  PR + required CI checks.
+
+### What To Do Next
+- Spawn Track B pair (B0 contract scaffold + B1 similarity threshold).
+- Then B2–B4, then diff-resolver + validator-dispatch CI job, then
+  Phase 2 branch protection.
+
+---
+
 ## 2026-07-27 — Review-gate trust hardening marathon (Cowork strategic + Claude Code pairs)
 
 **Duration:** multi-session (07-10 → 07-27)
